@@ -1,6 +1,6 @@
-import transporter from '../config/nodemailer.js';
+const transporter = require('../config/nodemailer');
 
-export const sendForgotPasswordEmail = async (email, resetUrl) => {
+const sendForgotPasswordEmail = async (email, resetUrl) => {
   await transporter.sendMail({
     from: process.env.MAIL_USER,
     to: email,
@@ -14,4 +14,8 @@ export const sendForgotPasswordEmail = async (email, resetUrl) => {
         <p>This link expires in 15 minutes.</p>
         `,
   });
+};
+
+module.exports = {
+  sendForgotPasswordEmail,
 };

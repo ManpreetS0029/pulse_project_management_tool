@@ -14,6 +14,8 @@ router.post('/register', register);
 
 router.post('/login', login);
 
+const mongoose = require('mongoose');
+
 router.post('/refresh', async (req, res) => {
   const cookies = req.cookies;
 
@@ -25,7 +27,13 @@ router.post('/refresh', async (req, res) => {
 
   try {
     const decoded = jwt.verify(refreshToken, process.env.REFRESH_TOKEN);
-    const user = await User.findOne({ username: decoded.user })
+    const userIdentifier = decoded.id || decoded.user;
+    const isId = mongoose.Types.ObjectId.isValid(userIdentifier);
+    const query = isId
+      ? { $or: [{ _id: userIdentifier }, { username: userIdentifier }] }
+      : { username: userIdentifier };
+
+    const user = await User.findOne(query)
       .collation({ locale: 'en', strength: 2 })
       .exec();
 
@@ -34,12 +42,12 @@ router.post('/refresh', async (req, res) => {
     }
 
     const accessToken = jwt.sign(
-      { user: user.username },
+      { id: user._id, user: user.username },
       process.env.ACCESS_TOKEN_SECRET,
       { expiresIn: '15m' },
     );
 
-    res.json({ accessToken, username: user.username });
+    res.json({ accessToken, username: user.username, role: user.role });
   } catch (err) {
     return res.status(403).json({ message: 'Forbidden' });
   }

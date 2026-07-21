@@ -17,7 +17,7 @@ const verifyJWT = (req, res, next) => {
         .json({ message: 'Invalid or expired access token' });
     }
 
-    req.user = decoded.user;
+    req.user = decoded;
 
     next();
   });

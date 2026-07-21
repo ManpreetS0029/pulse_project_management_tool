@@ -1,0 +1,22 @@
+const WORKSPACE_ROLES = {
+  ADMIN: 'ADMIN',
+  MEMBER: 'MEMBER',
+  PROJECT_MANAGER: 'PROJECT_MANAGER',
+};
+
+const WORKSPACE_STATUS = {
+  ACTIVE: 'Active',
+  ARCHIVED: 'Archived',
+};
+
+const WORKSPACE_MEMBER_STATUS = {
+  ACTIVE: 'Active',
+  SUSPENDED: 'Suspended',
+};
+
+module.exports = {
+  WORKSPACE_ROLES,
+  WORKSPACE_STATUS,
+  WORKSPACE_MEMBER_STATUS,
+};
+

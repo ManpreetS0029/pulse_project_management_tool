@@ -2,15 +2,16 @@ const express = require('express');
 const cors = require('cors');
 const cookieParser = require('cookie-parser');
 const dotenv = require('dotenv');
-const connectDB = require('./config/db');
+const connectDB = require('./config/db.js');
 
 dotenv.config();
 
 // Connect to Database
 connectDB();
 
-const authRoutes = require('./routes/auth.routes');
-const userRoutes = require('./routes/user.routes');
+const authRoutes = require('./routes/auth.routes.js');
+const userRoutes = require('./routes/user.routes.js');
+const workspaceRoutes = require('./routes/workspace.routes.js');
 
 const app = express();
 
@@ -27,6 +28,8 @@ app.use(cookieParser());
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/user', userRoutes);
+app.use('/api/workspace', workspaceRoutes);
+app.use('/api/workspaces', workspaceRoutes);
 
 const PORT = 3000;
 

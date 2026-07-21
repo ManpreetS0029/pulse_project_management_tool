@@ -1,11 +1,11 @@
-import crypto from 'crypto';
-import bcrypt from 'bcryptjs';
-import jwt from 'jsonwebtoken';
-import User from '../models/user.model.js';
-import { generateResetToken } from '../utils/generate-token.js';
-import { sendForgotPasswordEmail } from '../services/email.service.js';
+const crypto = require('crypto');
+const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
+const User = require('../models/user.model');
+const { generateResetToken } = require('../utils/generate-token');
+const { sendForgotPasswordEmail } = require('../services/email.service');
 
-export const login = async (req, res) => {
+const login = async (req, res) => {
   const { identifier, password } = req.body || {};
 
   if (!identifier || !password) {
@@ -43,12 +43,12 @@ export const login = async (req, res) => {
     }
 
     const accessToken = jwt.sign(
-      { user: user.username },
+      { id: user._id, user: user.username },
       process.env.ACCESS_TOKEN_SECRET,
       { expiresIn: '15m' },
     );
     const refreshToken = jwt.sign(
-      { user: user.username },
+      { id: user._id, user: user.username },
       process.env.REFRESH_TOKEN,
       { expiresIn: '7d' },
     );
@@ -66,7 +66,7 @@ export const login = async (req, res) => {
   }
 };
 
-export const register = async (req, res) => {
+const register = async (req, res) => {
   const { username, firstName, lastName, email, password, phone, role } =
     req.body || {};
 
@@ -115,7 +115,7 @@ export const register = async (req, res) => {
   }
 };
 
-export const forgotPassword = async (req, res) => {
+const forgotPassword = async (req, res) => {
   try {
     const { email } = req.body;
 
@@ -156,7 +156,7 @@ export const forgotPassword = async (req, res) => {
   }
 };
 
-export const resetPassword = async (req, res) => {
+const resetPassword = async (req, res) => {
   try {
     const { token } = req.params;
     const { password } = req.body;
@@ -200,4 +200,11 @@ export const resetPassword = async (req, res) => {
       message: 'Server error',
     });
   }
+};
+
+module.exports = {
+  login,
+  register,
+  forgotPassword,
+  resetPassword,
 };

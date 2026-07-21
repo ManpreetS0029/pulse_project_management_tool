@@ -6,6 +6,7 @@ import Register from './pages/auth/Register';
 import ForgotPassword from './pages/auth/ForgotPassword';
 import ResetPassword from './pages/auth/ResetPassword';
 import Dashboard from './pages/dashboard/Dashboard';
+import Workspace from './pages/dashboard/Workspace';
 import Projects from './pages/dashboard/Projects';
 import Tasks from './pages/dashboard/Tasks';
 import Team from './pages/dashboard/Team';
@@ -30,6 +31,7 @@ export default function App() {
           {/* Dashboard Routes */}
           <Route element={<ProtectedRoute />}>
             <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/dashboard/workspace" element={<Workspace />} />
             <Route path="/dashboard/projects" element={<Projects />} />
             <Route path="/dashboard/tasks" element={<Tasks />} />
             <Route path="/dashboard/team" element={<Team />} />
