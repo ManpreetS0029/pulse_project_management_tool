@@ -6,6 +6,10 @@ const {
   getWorkspace,
   updateWorkspace,
   deleteWorkspace,
+  inviteMembers,
+  getWorkspaceMembers,
+  acceptInvite,
+  rejectInvite,
 } = require('../controllers/workspace/workspace.controller.js');
 
 const { validate } = require('../middleware/validation.middleware.js');
@@ -26,5 +30,13 @@ router.get('/my-workspaces', getMyWorkspaces);
 router.get('/:workspaceId', getWorkspace);
 router.put('/:workspaceId', validate(updateWorkspaceSchema), updateWorkspace);
 router.delete('/:workspaceId', deleteWorkspace);
+
+router.post('/:workspaceId/invite', inviteMembers);
+router.get('/:workspaceId/members', getWorkspaceMembers);
+
+router.get('/:workspaceId/join', acceptInvite);
+router.post('/:workspaceId/join', acceptInvite);
+router.get('/:workspaceId/reject', rejectInvite);
+router.post('/:workspaceId/reject', rejectInvite);
 
 module.exports = router;

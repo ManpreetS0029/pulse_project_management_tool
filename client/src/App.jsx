@@ -11,6 +11,8 @@ import Projects from './pages/dashboard/Projects';
 import Tasks from './pages/dashboard/Tasks';
 import Team from './pages/dashboard/Team';
 
+import WorkspaceInvite from './pages/dashboard/WorkspaceInvite';
+
 import GuestRoute from './routes/GuestRoute';
 import ProtectedRoute from './routes/ProtectedRoute';
 
@@ -42,6 +44,22 @@ export default function App() {
             <Route
               path="/dashboard/settings"
               element={<Dashboard activeTab="settings" />}
+            />
+            <Route
+              path="/workspace/invite/:workspaceId"
+              element={<WorkspaceInvite />}
+            />
+            <Route
+              path="/workspace/invite"
+              element={<WorkspaceInvite />}
+            />
+            <Route
+              path="/workspace/:workspaceId/join"
+              element={<WorkspaceInvite />}
+            />
+            <Route
+              path="/workspace/:workspaceId/reject"
+              element={<WorkspaceInvite />}
             />
           </Route>
           {/* Default redirect */}

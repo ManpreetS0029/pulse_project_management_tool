@@ -16,6 +16,22 @@ const sendForgotPasswordEmail = async (email, resetUrl) => {
   });
 };
 
+const sendInviteMemberEmail = async (email, workspaceName, url) => {
+  await transporter.sendMail({
+    from: process.env.MAIL_USER,
+    to: email,
+    subject: `Invite to ${workspaceName}`,
+    html: `
+        <h2>Invite Member</h2>
+        <p>You are invited to join the workspace.</p>
+        <a href=${url}>
+            Accept Invitation
+        </a>
+        `,
+  });
+};
+
 module.exports = {
   sendForgotPasswordEmail,
+  sendInviteMemberEmail,
 };

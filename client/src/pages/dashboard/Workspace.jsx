@@ -20,26 +20,51 @@ const ROLE_BADGES = {
   Guest: 'bg-amber-100 text-amber-700 border-amber-200',
 };
 
+const normalizeRole = (role) => {
+  if (!role) return 'Member';
+  const r = String(role).trim().toUpperCase();
+  if (r === 'ADMIN' || r === 'PROJECT_MANAGER') return 'Admin';
+  if (r === 'OWNER') return 'Owner';
+  if (r === 'GUEST') return 'Guest';
+  if (r === 'MEMBER') return 'Member';
+  if (['Owner', 'Admin', 'Member', 'Guest'].includes(role)) return role;
+  return 'Member';
+};
+
 export default function Workspace() {
   const [workspaces, setWorkspaces] = useState([]);
-  const [activeWorkspace, setActiveWorkspace] = useState(mockWorkspaces[0]);
+  const [activeWorkspace, setActiveWorkspace] = useState([]);
   const [isWorkspaceDropdownOpen, setIsWorkspaceDropdownOpen] = useState(false);
 
   // Tabs: overview, members, projects, settings
-  const [activeTab, setActiveTab] = useState('overview');
+  const [activeTab, setActiveTab] = useState('members');
 
   // Members state
-  const [members, setMembers] = useState(mockWorkspaceMembers);
+  const [members, setMembers] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [roleFilter, setRoleFilter] = useState('All');
 
   // Modals state
   const [isCreateWorkspaceOpen, setIsCreateWorkspaceOpen] = useState(false);
   const [isInviteMemberOpen, setIsInviteMemberOpen] = useState(false);
+  const [isDeleteWorkspaceOpen, setIsDeleteWorkspaceOpen] = useState(false);
+
+  // Member management state
+  const [isEditMemberOpen, setIsEditMemberOpen] = useState(false);
+  const [editingMember, setEditingMember] = useState(null);
+  const [memberToDelete, setMemberToDelete] = useState(null);
 
   // Form inputs for Invite Member
+  const [inviteName, setInviteName] = useState('');
   const [inviteEmail, setInviteEmail] = useState('');
+  const [inviteDepartment, setInviteDepartment] = useState('');
   const [inviteRole, setInviteRole] = useState('Member');
+
+  // Form inputs for Edit Member
+  const [editName, setEditName] = useState('');
+  const [editEmail, setEditEmail] = useState('');
+  const [editDepartment, setEditDepartment] = useState('');
+  const [editRole, setEditRole] = useState('Member');
 
   // Toast
   const [toast, setToast] = useState('');
@@ -57,30 +82,135 @@ export default function Workspace() {
       try {
         const response = await apiPrivate.get('/workspaces/my-workspaces');
         const rawData = response.data?.data || response.data;
-
         if (Array.isArray(rawData) && rawData.length > 0) {
           const normalized = rawData.map((item) => {
             const wsObj = item.workspace || item;
+            const ownerObj =
+              typeof wsObj.owner === 'object' ? wsObj.owner : null;
+            const ownerName = ownerObj
+              ? `${ownerObj.firstName || ''} ${ownerObj.lastName || ''}`.trim() ||
+                ownerObj.username ||
+                ''
+              : typeof wsObj.owner === 'string'
+                ? wsObj.owner
+                : '';
+            const ownerId = ownerObj
+              ? ownerObj._id
+              : typeof wsObj.owner === 'string'
+                ? wsObj.owner
+                : null;
+
             return {
               id: wsObj._id || wsObj.id,
               _id: wsObj._id || wsObj.id,
               name: wsObj.name || 'Untitled Workspace',
               description: wsObj.description || '',
-              owner: wsObj.owner || '',
+              owner: ownerName,
+              ownerId: ownerId,
               role: item.role || wsObj.role || 'Member',
               status: wsObj.status || 'Active',
               color: wsObj.color || 'from-indigo-600 to-purple-600',
             };
           });
           setWorkspaces(normalized);
-          setActiveWorkspace(normalized[0]);
+          setActiveWorkspace((prev) => {
+            if (!prev || !prev._id || prev.id === 'ws-1') {
+              return normalized[0];
+            }
+            return prev;
+          });
         }
       } catch (err) {
         console.error('Failed to fetch workspaces:', err);
       }
     };
+
     getWorkspaceData();
   }, [auth?.token]);
+
+  useEffect(() => {
+    const getWorkspaceMembers = async () => {
+      const wsId =
+        activeWorkspace?._id ||
+        (activeWorkspace?.id && !String(activeWorkspace.id).startsWith('ws-')
+          ? activeWorkspace.id
+          : null);
+
+      if (!auth?.token || !wsId || wsId === 'undefined') {
+        if (
+          activeWorkspace?.id &&
+          String(activeWorkspace.id).startsWith('ws-')
+        ) {
+          setMembers(mockWorkspaceMembers);
+        } else {
+          setMembers([]);
+        }
+        return;
+      }
+
+      try {
+        const response = await apiPrivate.get(`/workspaces/${wsId}/members`);
+        const rawData = response.data?.data || response.data;
+        if (Array.isArray(rawData)) {
+          const normalized = rawData.map((item) => {
+            const userObj =
+              typeof item.user === 'object' && item.user ? item.user : {};
+            const fullName =
+              `${userObj.firstName || ''} ${userObj.lastName || ''}`.trim() ||
+              userObj.username ||
+              userObj.email?.split('@')[0] ||
+              'Workspace Member';
+            const initials =
+              fullName
+                .split(' ')
+                .map((n) => n[0])
+                .join('')
+                .substring(0, 2)
+                .toUpperCase() || 'WM';
+
+            let roleName = normalizeRole(item.role);
+
+            if (
+              activeWorkspace?.ownerId &&
+              userObj._id &&
+              String(userObj._id) === String(activeWorkspace.ownerId)
+            ) {
+              roleName = 'Owner';
+            }
+
+            return {
+              id: item._id || item.id || `mem-${Date.now()}`,
+              _id: item._id || item.id,
+              userId: userObj._id || userObj.id,
+              name: fullName,
+              email: userObj.email || '',
+              role: roleName,
+              avatar: initials,
+              bgGradient: 'from-indigo-500 to-violet-600',
+              department: userObj.department || 'Engineering',
+              joinedDate: item.joinedAt
+                ? new Date(item.joinedAt).toLocaleDateString('en-US', {
+                    month: 'short',
+                    day: 'numeric',
+                    year: 'numeric',
+                  })
+                : 'Jan 15, 2024',
+              status:
+                item.status === 'Active' || item.status === 'ACTIVE'
+                  ? 'Active'
+                  : 'Pending Invite',
+              tasksCompleted: 0,
+            };
+          });
+          setMembers(normalized);
+        }
+      } catch (err) {
+        console.error('Failed to fetch workspace members:', err);
+      }
+    };
+
+    getWorkspaceMembers();
+  }, [auth?.token, activeWorkspace?._id, activeWorkspace?.id]);
 
   const {
     register,
@@ -91,16 +221,33 @@ export default function Workspace() {
 
   const onSubmit = async (data) => {
     try {
-      const response = await apiPrivate.post('/workspace', data);
+      const response = await apiPrivate.post('/workspaces', data);
       const rawNewWs = response.data?.data || response.data;
       if (rawNewWs) {
         const wsObj = rawNewWs.workspace || rawNewWs;
+        const ownerObj = typeof wsObj.owner === 'object' ? wsObj.owner : null;
+        const ownerName = ownerObj
+          ? `${ownerObj.firstName || ''} ${ownerObj.lastName || ''}`.trim() ||
+            ownerObj.username ||
+            ''
+          : typeof wsObj.owner === 'string'
+            ? wsObj.owner
+            : auth?.user?.firstName
+              ? `${auth.user.firstName} ${auth.user.lastName || ''}`.trim()
+              : auth?.user?.username || '';
+        const ownerId = ownerObj
+          ? ownerObj._id
+          : typeof wsObj.owner === 'string'
+            ? wsObj.owner
+            : auth?.user?._id || auth?.user?.id;
+
         const newWs = {
           id: wsObj._id || wsObj.id,
           _id: wsObj._id || wsObj.id,
           name: wsObj.name || 'Untitled Workspace',
           description: wsObj.description || '',
-          owner: wsObj.owner || '',
+          owner: ownerName,
+          ownerId: ownerId,
           role: rawNewWs.role || wsObj.role || 'Owner',
           status: wsObj.status || 'Active',
           color: wsObj.color || 'from-indigo-600 to-purple-600',
@@ -117,6 +264,80 @@ export default function Workspace() {
     }
   };
 
+  const onWorkspaceSettingsSubmit = async (data) => {
+    try {
+      if (!activeWorkspace?._id) return;
+      const response = await apiPrivate.put(
+        `/workspaces/${activeWorkspace._id}`,
+        data,
+      );
+      const rawNewWs = response.data?.data || response.data;
+      if (rawNewWs) {
+        const wsObj = rawNewWs.workspace || rawNewWs;
+        const updatedWs = {
+          ...activeWorkspace,
+          name: wsObj.name || activeWorkspace.name,
+          description:
+            wsObj.description !== undefined
+              ? wsObj.description
+              : activeWorkspace.description,
+        };
+        setActiveWorkspace(updatedWs);
+        setWorkspaces((prev) =>
+          prev.map((w) => ((w._id || w.id) === updatedWs._id ? updatedWs : w)),
+        );
+        triggerToast(`Workspace updated successfully!`);
+      }
+      reset();
+    } catch (err) {
+      console.error(err);
+      triggerToast(err.response?.data?.message || 'Failed to update workspace');
+    }
+  };
+
+  const onInviteMemberSubmit = async (data) => {
+    try {
+      if (!activeWorkspace?._id) {
+        triggerToast('Please select a valid workspace first');
+        return;
+      }
+      await apiPrivate.post(`/workspaces/${activeWorkspace._id}/invite`, {
+        email: data.email,
+        role: data.role || 'Member',
+        workspaceName: activeWorkspace.name,
+      });
+      triggerToast(`Invitation sent to ${data.email}!`);
+      reset();
+      setIsInviteMemberOpen(false);
+    } catch (err) {
+      console.error(err);
+      triggerToast(err.response?.data?.message || 'Failed to invite member');
+      setIsInviteMemberOpen(false);
+    }
+  };
+
+  const deleteWorkspace = async () => {
+    try {
+      const response = await apiPrivate.delete(
+        `/workspaces/${activeWorkspace._id}`,
+      );
+      const remaining = workspaces.filter(
+        (w) => (w._id || w.id) !== (activeWorkspace._id || activeWorkspace.id),
+      );
+      setWorkspaces(remaining);
+      if (remaining.length > 0) {
+        setActiveWorkspace(remaining[0]);
+      }
+      triggerToast(`Workspace "${activeWorkspace.name}" deleted successfully!`);
+      setIsDeleteWorkspaceOpen(false);
+      reset();
+    } catch (err) {
+      console.error(err);
+      triggerToast(err.response?.data?.message || 'Failed to delete workspace');
+      setIsDeleteWorkspaceOpen(false);
+    }
+  };
+
   // Workspace Switch
   const handleSwitchWorkspace = (ws) => {
     setActiveWorkspace(ws);
@@ -129,15 +350,17 @@ export default function Workspace() {
     e.preventDefault();
     if (!inviteEmail.trim()) return;
 
-    const initials = inviteEmail.substring(0, 2).toUpperCase();
+    const initials = (inviteName.trim() || inviteEmail)
+      .substring(0, 2)
+      .toUpperCase();
     const newMember = {
       id: `mem-${Date.now()}`,
-      name: inviteEmail.split('@')[0],
+      name: inviteName.trim() || inviteEmail.split('@')[0],
       email: inviteEmail,
       role: inviteRole,
       avatar: initials,
       bgGradient: 'from-purple-500 to-indigo-500',
-      department: 'Team Member',
+      department: inviteDepartment.trim() || 'Team Member',
       joinedDate: 'Just Now',
       status: 'Pending Invite',
       tasksCompleted: 0,
@@ -145,8 +368,59 @@ export default function Workspace() {
 
     setMembers([newMember, ...members]);
     setIsInviteMemberOpen(false);
+    setInviteName('');
     setInviteEmail('');
-    triggerToast(`Invitation sent to ${inviteEmail} as ${inviteRole}`);
+    setInviteDepartment('');
+    setInviteRole('Member');
+    triggerToast(`Invitation sent to ${newMember.name} as ${inviteRole}`);
+  };
+
+  // Edit Member Trigger
+  const handleOpenEditMember = (member) => {
+    setEditingMember(member);
+    setEditName(member.name || '');
+    setEditEmail(member.email || '');
+    setEditDepartment(member.department || '');
+    setEditRole(member.role || 'Member');
+    setIsEditMemberOpen(true);
+  };
+
+  // Edit Member Submit
+  const handleEditMemberSubmit = (e) => {
+    e.preventDefault();
+    if (!editingMember) return;
+
+    const initials = (editName.trim() || editEmail)
+      .substring(0, 2)
+      .toUpperCase();
+    setMembers(
+      members.map((m) =>
+        m.id === editingMember.id
+          ? {
+              ...m,
+              name: editName.trim() || m.name,
+              email: editEmail.trim() || m.email,
+              department: editDepartment.trim() || m.department,
+              role: editRole,
+              avatar: initials,
+            }
+          : m,
+      ),
+    );
+
+    setIsEditMemberOpen(false);
+    setEditingMember(null);
+    triggerToast(
+      `Updated member details for ${editName || editingMember.name}`,
+    );
+  };
+
+  // Delete Member Confirm
+  const handleConfirmDeleteMember = () => {
+    if (!memberToDelete) return;
+    setMembers(members.filter((item) => item.id !== memberToDelete.id));
+    triggerToast(`Removed ${memberToDelete.name} from workspace`);
+    setMemberToDelete(null);
   };
 
   // Role Change handler
@@ -163,7 +437,8 @@ export default function Workspace() {
       m.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       m.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
       m.department.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesRole = roleFilter === 'All' || m.role === roleFilter;
+    const normRole = normalizeRole(m.role);
+    const matchesRole = roleFilter === 'All' || normRole === roleFilter;
     return matchesSearch && matchesRole;
   });
 
@@ -254,7 +529,8 @@ export default function Workspace() {
                         <div className="max-h-64 overflow-y-auto py-1">
                           {workspaces.map((ws) => {
                             const wsId = ws.id || ws._id;
-                            const activeId = activeWorkspace?.id || activeWorkspace?._id;
+                            const activeId =
+                              activeWorkspace?.id || activeWorkspace?._id;
                             const isSelected = wsId === activeId;
                             return (
                               <button
@@ -418,7 +694,6 @@ export default function Workspace() {
       {/* NAVIGATION TABS */}
       <div className="flex items-center border-b border-slate-200 space-x-8">
         {[
-          { id: 'overview', label: 'Overview' },
           {
             id: 'members',
             label: `Members & Roles (${members.length})`,
@@ -445,106 +720,6 @@ export default function Workspace() {
       </div>
 
       {/* TAB CONTENT */}
-
-      {/* OVERVIEW TAB */}
-      {activeTab === 'overview' && (
-        <div className="space-y-6 animate-fade-in">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Recent Activity Timeline */}
-            <div className="lg:col-span-2 bg-white p-6 rounded-2xl border border-slate-200/80 shadow-sm space-y-4">
-              <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-                <h3 className="text-base font-extrabold text-slate-800">
-                  Workspace Activity Feed
-                </h3>
-                <span className="text-xs text-slate-400 font-medium">
-                  Real-time updates
-                </span>
-              </div>
-
-              <div className="space-y-4">
-                {mockWorkspaceActivity.map((act) => (
-                  <div
-                    key={act.id}
-                    className="p-3 rounded-xl hover:bg-slate-50 transition"
-                  >
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm text-slate-700 leading-snug">
-                        <span className="font-bold text-slate-900">
-                          {act.user}
-                        </span>{' '}
-                        {act.action}{' '}
-                        <span className="font-semibold text-indigo-600">
-                          {act.target}
-                        </span>
-                      </p>
-                      <span className="text-[11px] text-slate-400">
-                        {act.time}
-                      </span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Role Breakdown Widget */}
-            <div className="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-sm space-y-4">
-              <h3 className="text-base font-extrabold text-slate-800 border-b border-slate-100 pb-3">
-                Role Distribution
-              </h3>
-
-              <div className="space-y-3">
-                {[
-                  {
-                    role: 'Owner',
-                    count: members.filter((m) => m.role === 'Owner').length,
-                    color: 'bg-indigo-500',
-                  },
-                  {
-                    role: 'Admin',
-                    count: members.filter((m) => m.role === 'Admin').length,
-                    color: 'bg-purple-500',
-                  },
-                  {
-                    role: 'Member',
-                    count: members.filter((m) => m.role === 'Member').length,
-                    color: 'bg-blue-500',
-                  },
-                  {
-                    role: 'Guest',
-                    count: members.filter((m) => m.role === 'Guest').length,
-                    color: 'bg-amber-500',
-                  },
-                ].map((item) => (
-                  <div
-                    key={item.role}
-                    className="flex items-center justify-between text-sm"
-                  >
-                    <div className="flex items-center gap-2">
-                      <span className={`h-3 w-3 rounded-full ${item.color}`} />
-                      <span className="font-semibold text-slate-700">
-                        {item.role}s
-                      </span>
-                    </div>
-                    <span className="font-extrabold text-slate-900">
-                      {item.count}
-                    </span>
-                  </div>
-                ))}
-              </div>
-
-              <div className="p-4 rounded-xl bg-indigo-50/60 border border-indigo-100 mt-4">
-                <p className="text-xs font-bold text-indigo-900">
-                  💡 Role-Based Authorization
-                </p>
-                <p className="text-xs text-indigo-700/80 mt-1">
-                  Extensible RBAC allows workspace admins to configure
-                  fine-grained permissions per project.
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* MEMBERS & ROLES TAB */}
       {activeTab === 'members' && (
@@ -639,19 +814,20 @@ export default function Workspace() {
 
                       {/* Role Selector Badge */}
                       <td className="py-4 px-5">
-                        {m.role === 'Owner' ? (
+                        {normalizeRole(m.role) === 'Owner' ? (
                           <span className="inline-flex items-center gap-1 text-xs font-bold px-3 py-1 rounded-full border bg-indigo-100 text-indigo-700 border-indigo-200">
                             👑 Owner
                           </span>
                         ) : (
                           <select
                             id={`role-select-${m.id}`}
-                            value={m.role}
+                            value={normalizeRole(m.role)}
                             onChange={(e) =>
                               handleRoleChange(m.id, e.target.value)
                             }
                             className={`text-xs font-bold px-2.5 py-1 rounded-full border cursor-pointer focus:outline-none ${
-                              ROLE_BADGES[m.role] || 'bg-slate-100'
+                              ROLE_BADGES[normalizeRole(m.role)] ||
+                              'bg-slate-100'
                             }`}
                           >
                             <option value="Admin">Admin</option>
@@ -682,30 +858,46 @@ export default function Workspace() {
                       {/* Actions */}
                       <td className="py-4 px-5 text-right">
                         {m.role !== 'Owner' && (
-                          <button
-                            onClick={() => {
-                              setMembers(
-                                members.filter((item) => item.id !== m.id),
-                              );
-                              triggerToast(`Removed ${m.name} from workspace`);
-                            }}
-                            className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition cursor-pointer"
-                            title="Remove member"
-                          >
-                            <svg
-                              className="h-4 w-4"
-                              fill="none"
-                              viewBox="0 0 24 24"
-                              stroke="currentColor"
+                          <div className="flex items-center justify-end gap-1">
+                            <button
+                              onClick={() => handleOpenEditMember(m)}
+                              className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition cursor-pointer"
+                              title="Edit member"
                             >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                              />
-                            </svg>
-                          </button>
+                              <svg
+                                className="h-4 w-4"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                stroke="currentColor"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                                />
+                              </svg>
+                            </button>
+                            <button
+                              onClick={() => setMemberToDelete(m)}
+                              className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition cursor-pointer"
+                              title="Remove member"
+                            >
+                              <svg
+                                className="h-4 w-4"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                stroke="currentColor"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                                />
+                              </svg>
+                            </button>
+                          </div>
                         )}
                       </td>
                     </tr>
@@ -800,38 +992,56 @@ export default function Workspace() {
             </p>
           </div>
 
-          <div className="space-y-4">
-            <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">
-                Workspace Name
-              </label>
-              <input
-                type="text"
-                defaultValue={activeWorkspace.name}
-                className="w-full px-4 py-2 border border-slate-200 rounded-xl text-sm bg-slate-50 text-slate-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/30"
-              />
+          <form onSubmit={handleSubmit(onWorkspaceSettingsSubmit)}>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  Workspace Name
+                </label>
+                <input
+                  type="text"
+                  defaultValue={activeWorkspace.name}
+                  className={`w-full px-4 py-2 border rounded-xl text-sm bg-slate-50 text-slate-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/30 ${errors.name ? 'border-red-500' : 'border-slate-200'}`}
+                  {...register('name', {
+                    required: 'Name is required',
+                  })}
+                />
+                {errors.name && (
+                  <p className="text-xs text-red-500 mt-1">
+                    {errors.name.message}
+                  </p>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  Description
+                </label>
+                <textarea
+                  rows={3}
+                  defaultValue={activeWorkspace.description}
+                  className={`w-full px-4 py-2 border rounded-xl text-sm bg-slate-50 text-slate-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/30 ${errors.description ? 'border-red-500' : 'border-slate-200'}`}
+                  {...register('description', {
+                    required: 'Description is required',
+                  })}
+                />
+                {errors.description && (
+                  <p className="text-xs text-red-500 mt-1">
+                    {errors.description.message}
+                  </p>
+                )}
+              </div>
             </div>
 
-            <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">
-                Description
-              </label>
-              <textarea
-                rows={3}
-                defaultValue={activeWorkspace.description}
-                className="w-full px-4 py-2 border border-slate-200 rounded-xl text-sm bg-slate-50 text-slate-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/30"
-              />
+            <div className="pt-4 border-t border-slate-100 flex items-center justify-between">
+              <button
+                type="submit"
+                className="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs shadow-md transition cursor-pointer"
+              >
+                Save Changes
+              </button>
             </div>
-          </div>
-
-          <div className="pt-4 border-t border-slate-100 flex items-center justify-between">
-            <button
-              onClick={() => triggerToast('Workspace settings saved!')}
-              className="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs shadow-md transition cursor-pointer"
-            >
-              Save Changes
-            </button>
-          </div>
+          </form>
 
           {/* Danger Zone */}
           <div className="pt-6 border-t border-slate-200/80 space-y-3">
@@ -849,9 +1059,7 @@ export default function Workspace() {
                 </p>
               </div>
               <button
-                onClick={() =>
-                  triggerToast('Delete workspace requires owner verification')
-                }
+                onClick={() => setIsDeleteWorkspaceOpen(true)}
                 className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs shadow-sm transition cursor-pointer"
               >
                 Delete Space
@@ -1008,7 +1216,37 @@ export default function Workspace() {
               </button>
             </div>
 
-            <form onSubmit={handleInviteMember} className="space-y-4 mt-4">
+            <form
+              onSubmit={handleSubmit(onInviteMemberSubmit)}
+              className="space-y-4 mt-4"
+            >
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  Full Name
+                </label>
+                <input
+                  id="invite-name-input"
+                  type="text"
+                  placeholder="e.g. Jane Doe"
+                  className={`w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/30 ${
+                    errors.name
+                      ? 'border-rose-300 focus:ring-rose-500 focus:border-rose-500'
+                      : 'border-slate-200 focus:ring-indigo-500 focus:border-indigo-500'
+                  }`}
+                  {...register('name', {
+                    required: {
+                      value: true,
+                      message: 'Name is required',
+                    },
+                  })}
+                />
+                {errors.name && (
+                  <p className="text-xs text-rose-600 mt-1">
+                    {errors.name.message}
+                  </p>
+                )}
+              </div>
+
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1">
                   Email Address *
@@ -1016,12 +1254,55 @@ export default function Workspace() {
                 <input
                   id="invite-email-input"
                   type="email"
-                  required
                   placeholder="colleague@company.com"
-                  value={inviteEmail}
-                  onChange={(e) => setInviteEmail(e.target.value)}
-                  className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/30"
+                  className={`w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/30 ${
+                    errors.email
+                      ? 'border-rose-300 focus:ring-rose-500 focus:border-rose-500'
+                      : 'border-slate-200 focus:ring-indigo-500 focus:border-indigo-500'
+                  }`}
+                  {...register('email', {
+                    required: {
+                      value: true,
+                      message: 'Email is required',
+                    },
+                    pattern: {
+                      value: /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/,
+                      message: 'Invalid email address',
+                    },
+                  })}
                 />
+                {errors.email && (
+                  <p className="text-xs text-rose-600 mt-1">
+                    {errors.email.message}
+                  </p>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  Department / Job Title
+                </label>
+                <input
+                  id="invite-department-input"
+                  type="text"
+                  placeholder="e.g. Frontend Engineering"
+                  className={`w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/30 ${
+                    errors.department
+                      ? 'border-rose-300 focus:ring-rose-500 focus:border-rose-500'
+                      : 'border-slate-200 focus:ring-indigo-500 focus:border-indigo-500'
+                  }`}
+                  {...register('department', {
+                    required: {
+                      value: true,
+                      message: 'Department is required',
+                    },
+                  })}
+                />
+                {errors.department && (
+                  <p className="text-xs text-rose-600 mt-1">
+                    {errors.department.message}
+                  </p>
+                )}
               </div>
 
               <div>
@@ -1029,9 +1310,17 @@ export default function Workspace() {
                   Assign Initial Role
                 </label>
                 <select
-                  value={inviteRole}
-                  onChange={(e) => setInviteRole(e.target.value)}
-                  className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/30 cursor-pointer font-semibold"
+                  className={`w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/30 cursor-pointer font-semibold ${
+                    errors.role
+                      ? 'border-rose-300 focus:ring-rose-500 focus:border-rose-500'
+                      : 'border-slate-200 focus:ring-indigo-500 focus:border-indigo-500'
+                  }`}
+                  {...register('role', {
+                    required: {
+                      value: true,
+                      message: 'Role is required',
+                    },
+                  })}
                 >
                   <option value="Admin">
                     Admin (Full project & member controls)
@@ -1041,6 +1330,11 @@ export default function Workspace() {
                   </option>
                   <option value="Guest">Guest (Read-only access)</option>
                 </select>
+                {errors.role && (
+                  <p className="text-xs text-rose-600 mt-1">
+                    {errors.role.message}
+                  </p>
+                )}
               </div>
 
               <div className="pt-3 flex items-center justify-end gap-3">
@@ -1060,6 +1354,240 @@ export default function Workspace() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* EDIT MEMBER MODAL */}
+      {isEditMemberOpen && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-100 animate-in fade-in zoom-in-95">
+            <div className="flex items-center justify-between pb-4 border-b border-slate-100">
+              <h3 className="text-lg font-black text-slate-900">
+                Edit Member Details
+              </h3>
+              <button
+                onClick={() => {
+                  setIsEditMemberOpen(false);
+                  setEditingMember(null);
+                }}
+                className="p-1 rounded-lg text-slate-400 hover:text-slate-600 cursor-pointer"
+              >
+                <svg
+                  className="h-5 w-5"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M6 18L18 6M6 6l12 12"
+                  />
+                </svg>
+              </button>
+            </div>
+
+            <form onSubmit={handleEditMemberSubmit} className="space-y-4 mt-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  Full Name
+                </label>
+                <input
+                  id="edit-member-name-input"
+                  type="text"
+                  required
+                  placeholder="e.g. Sarah Lin"
+                  value={editName}
+                  onChange={(e) => setEditName(e.target.value)}
+                  className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/30"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  Email Address
+                </label>
+                <input
+                  id="edit-member-email-input"
+                  type="email"
+                  required
+                  placeholder="sarah@pulse.io"
+                  value={editEmail}
+                  onChange={(e) => setEditEmail(e.target.value)}
+                  className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/30"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  Department / Job Title
+                </label>
+                <input
+                  id="edit-member-department-input"
+                  type="text"
+                  placeholder="e.g. Product Design"
+                  value={editDepartment}
+                  onChange={(e) => setEditDepartment(e.target.value)}
+                  className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/30"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  Workspace Role
+                </label>
+                <select
+                  value={normalizeRole(editRole)}
+                  onChange={(e) => setEditRole(e.target.value)}
+                  className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/30 cursor-pointer font-semibold"
+                >
+                  <option value="Admin">Admin</option>
+                  <option value="Member">Member</option>
+                  <option value="Guest">Guest</option>
+                </select>
+              </div>
+
+              <div className="pt-3 flex items-center justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsEditMemberOpen(false);
+                    setEditingMember(null);
+                  }}
+                  className="px-4 py-2 rounded-xl text-xs font-bold text-slate-500 hover:bg-slate-100 cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  id="submit-edit-member-btn"
+                  type="submit"
+                  className="px-5 py-2.5 rounded-xl text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 shadow-md cursor-pointer"
+                >
+                  Save Changes
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* DELETE WORKSPACE CONFIRMATION MODAL */}
+      {isDeleteWorkspaceOpen && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-100 animate-in fade-in zoom-in-95">
+            <div className="flex items-center gap-4 mb-4">
+              <div className="h-12 w-12 rounded-2xl bg-rose-100 text-rose-600 flex items-center justify-center flex-shrink-0">
+                <svg
+                  className="h-6 w-6"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                  />
+                </svg>
+              </div>
+              <div>
+                <h3 className="text-lg font-black text-slate-900">
+                  Delete Workspace
+                </h3>
+                <p className="text-xs text-slate-500">
+                  This action is irreversible.
+                </p>
+              </div>
+            </div>
+
+            <p className="text-sm text-slate-600 mb-6 leading-relaxed">
+              Are you sure you want to delete{' '}
+              <span className="font-bold text-slate-900">
+                "{activeWorkspace?.name}"
+              </span>
+              ? All associated projects, tasks, and settings will be permanently
+              removed.
+            </p>
+
+            <div className="flex items-center justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => setIsDeleteWorkspaceOpen(false)}
+                className="px-4 py-2.5 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100 cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                id="confirm-delete-workspace-btn"
+                type="button"
+                onClick={deleteWorkspace}
+                className="px-5 py-2.5 rounded-xl text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 shadow-md cursor-pointer"
+              >
+                Delete Workspace
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* REMOVE MEMBER CONFIRMATION MODAL */}
+      {memberToDelete && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-100 animate-in fade-in zoom-in-95">
+            <div className="flex items-center gap-4 mb-4">
+              <div className="h-12 w-12 rounded-2xl bg-rose-100 text-rose-600 flex items-center justify-center flex-shrink-0">
+                <svg
+                  className="h-6 w-6"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M13 7a4 4 0 11-8 0 4 4 0 018 0zM9 14a6 6 0 00-6 6v1h12v-1a6 6 0 00-6-6zM21 12h-6"
+                  />
+                </svg>
+              </div>
+              <div>
+                <h3 className="text-lg font-black text-slate-900">
+                  Remove Team Member
+                </h3>
+                <p className="text-xs text-slate-500">
+                  Revoke workspace access
+                </p>
+              </div>
+            </div>
+
+            <p className="text-sm text-slate-600 mb-6 leading-relaxed">
+              Are you sure you want to remove{' '}
+              <span className="font-bold text-slate-900">
+                {memberToDelete.name}
+              </span>{' '}
+              ({memberToDelete.email}) from this workspace?
+            </p>
+
+            <div className="flex items-center justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => setMemberToDelete(null)}
+                className="px-4 py-2.5 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100 cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                id="confirm-remove-member-btn"
+                type="button"
+                onClick={handleConfirmDeleteMember}
+                className="px-5 py-2.5 rounded-xl text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 shadow-md cursor-pointer"
+              >
+                Remove Member
+              </button>
+            </div>
           </div>
         </div>
       )}

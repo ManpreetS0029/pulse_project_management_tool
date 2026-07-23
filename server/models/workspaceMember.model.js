@@ -49,4 +49,8 @@ workspaceMemberSchema.index(
   },
 );
 
-module.exports = mongoose.model('WorkspaceMember', workspaceMemberSchema);
+module.exports = mongoose.model(
+  'WorkspaceMember',
+  workspaceMemberSchema,
+  'workspace_members',
+);
