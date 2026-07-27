@@ -1,11 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import MainLayout from '../../components/layout/MainLayout';
-import {
-  mockWorkspaces,
-  mockWorkspaceMembers,
-  mockWorkspaceActivity,
-  mockWorkspaceProjects,
-} from '../../data/mockWorkspace';
+import ProjectCard from '../../components/ui/ProjectCard';
+
 
 import { useForm } from 'react-hook-form';
 import { apiPrivate } from '../../api/axios';
@@ -31,10 +27,30 @@ const normalizeRole = (role) => {
   return 'Member';
 };
 
+const normalizeProject = (p) => ({
+  id: p._id || p.id || `PRJ-${Math.floor(100 + Math.random() * 900)}`,
+  _id: p._id || p.id,
+  name: p.name || 'Untitled Project',
+  description: p.description || '',
+  workspace:
+    p.workspaceName ||
+    (typeof p.workspace === 'string' ? p.workspace : '') ||
+    'Pulse Dev Core',
+  workspaceId: p.workspace?._id || p.workspace,
+  status: p.status || 'In Progress',
+  priority: p.priority || 'Medium',
+  progress: p.progress ?? 0,
+  dueDate: p.dueDate ? new Date(p.dueDate).toISOString().split('T')[0] : '',
+  tasksTotal: p.tasksTotal ?? (p.tasksCount || 0),
+  tasksCompleted: p.tasksCompleted ?? Math.round(((p.progress || 0) / 100) * (p.tasksCount || 0)),
+  color: p.color || 'indigo',
+});
+
 export default function Workspace() {
   const [workspaces, setWorkspaces] = useState([]);
   const [activeWorkspace, setActiveWorkspace] = useState([]);
   const [isWorkspaceDropdownOpen, setIsWorkspaceDropdownOpen] = useState(false);
+  const [workspaceProjects, setWorkspaceProjects] = useState([]);
 
   // Tabs: overview, members, projects, settings
   const [activeTab, setActiveTab] = useState('members');
@@ -137,14 +153,7 @@ export default function Workspace() {
           : null);
 
       if (!auth?.token || !wsId || wsId === 'undefined') {
-        if (
-          activeWorkspace?.id &&
-          String(activeWorkspace.id).startsWith('ws-')
-        ) {
-          setMembers(mockWorkspaceMembers);
-        } else {
-          setMembers([]);
-        }
+        setMembers([]);
         return;
       }
 
@@ -211,6 +220,43 @@ export default function Workspace() {
 
     getWorkspaceMembers();
   }, [auth?.token, activeWorkspace?._id, activeWorkspace?.id]);
+
+  useEffect(() => {
+    const getWorkspaceProjectsData = async () => {
+      const wsId =
+        activeWorkspace?._id ||
+        (activeWorkspace?.id && !String(activeWorkspace.id).startsWith('ws-')
+          ? activeWorkspace.id
+          : null);
+      const wsName = activeWorkspace?.name;
+
+      if (!auth?.token) {
+        setWorkspaceProjects([]);
+        return;
+      }
+
+      try {
+        const response = await apiPrivate.get('/project', {
+          params: {
+            workspaceId: wsId || undefined,
+            workspaceName: wsName || undefined,
+          },
+        });
+        const rawData = response.data?.data || response.data;
+        if (Array.isArray(rawData)) {
+          const normalized = rawData.map(normalizeProject);
+          setWorkspaceProjects(normalized);
+        } else {
+          setWorkspaceProjects([]);
+        }
+      } catch (err) {
+        console.error('Failed to fetch workspace projects:', err);
+        setWorkspaceProjects([]);
+      }
+    };
+
+    getWorkspaceProjectsData();
+  }, [auth?.token, activeWorkspace?._id, activeWorkspace?.id, activeWorkspace?.name]);
 
   const {
     register,
@@ -554,7 +600,7 @@ export default function Workspace() {
                                     {ws.name || 'Untitled Workspace'}
                                   </p>
                                   <p className="text-xs text-slate-400">
-                                    10 members
+                                    {members.length} members
                                   </p>
                                 </div>
                                 {isSelected && (
@@ -677,7 +723,7 @@ export default function Workspace() {
               Active Projects
             </span>
             <p className="text-lg font-extrabold text-slate-800">
-              {mockWorkspaceProjects.length}
+              {workspaceProjects.length}
             </p>
           </div>
           <div>
@@ -700,7 +746,7 @@ export default function Workspace() {
           },
           {
             id: 'projects',
-            label: `Projects (${mockWorkspaceProjects.length})`,
+            label: `Projects (${workspaceProjects.length})`,
           },
           { id: 'settings', label: 'Settings' },
         ].map((tab) => (
@@ -912,71 +958,23 @@ export default function Workspace() {
       {/* PROJECTS TAB */}
       {activeTab === 'projects' && (
         <div className="space-y-6 animate-fade-in">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-            {mockWorkspaceProjects.map((p) => (
-              <div
-                key={p.id}
-                className="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-sm hover:shadow-md transition"
-              >
-                <div className="flex items-center justify-between mb-3">
-                  <span className="text-xs font-extrabold px-2.5 py-1 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-100">
-                    {p.status}
-                  </span>
-                  <span className="text-xs text-slate-400 font-medium">
-                    {p.updatedAt}
-                  </span>
-                </div>
-
-                <h4 className="text-base font-extrabold text-slate-900">
-                  {p.name}
-                </h4>
-                <p className="text-xs text-slate-500 mt-1 mb-4 leading-relaxed">
-                  {p.description}
-                </p>
-
-                {/* Progress bar */}
-                <div className="space-y-1.5 mb-4">
-                  <div className="flex justify-between text-xs font-bold">
-                    <span className="text-slate-600">Completion Rate</span>
-                    <span className="text-indigo-600">{p.progress}%</span>
-                  </div>
-                  <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
-                    <div
-                      className="bg-indigo-600 h-full rounded-full transition-all"
-                      style={{ width: `${p.progress}%` }}
-                    />
-                  </div>
-                </div>
-
-                <div className="flex items-center justify-between border-t border-slate-100 pt-3 text-xs text-slate-400">
-                  <span className="font-semibold text-slate-500">
-                    {p.tasksCount} Tasks
-                  </span>
-                  <div className="flex -space-x-2 pl-2 pr-1">
-                    {p.members.map((m, idx) => {
-                      const memberObj = members.find((mem) => mem.avatar === m);
-                      const bgGradient =
-                        memberObj?.bgGradient ||
-                        'from-indigo-500 to-purple-600';
-                      return (
-                        <div
-                          key={idx}
-                          title={
-                            memberObj
-                              ? `${memberObj.name} (${memberObj.email})`
-                              : m
-                          }
-                          className={`h-7 w-7 rounded-full ring-2 ring-white bg-gradient-to-tr ${bgGradient} text-white font-extrabold flex items-center justify-center text-[10px] flex-shrink-0 shadow-sm transition-transform hover:z-10 hover:scale-110`}
-                        >
-                          {m}
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
+          {workspaceProjects.length === 0 ? (
+            <div className="bg-white rounded-2xl p-12 text-center border border-slate-200/80 shadow-sm">
+              <div className="h-16 w-16 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center mx-auto mb-4 text-2xl font-bold">
+                📁
               </div>
-            ))}
-          </div>
+              <h3 className="text-base font-bold text-slate-800">No projects in this workspace</h3>
+              <p className="text-xs text-slate-400 mt-1">
+                There are currently no active projects created under this workspace.
+              </p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+              {workspaceProjects.map((p) => (
+                <ProjectCard key={p.id || p._id} project={p} />
+              ))}
+            </div>
+          )}
         </div>
       )}
 

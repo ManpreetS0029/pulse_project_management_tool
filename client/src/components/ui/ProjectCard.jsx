@@ -24,16 +24,17 @@ const colorMap = {
 };
 
 export default function ProjectCard({ project }) {
-  const { name, description, status, priority, progress, dueDate, tasksTotal, tasksCompleted, color, icon, assignees } = project;
+  const { name, description, status, priority, progress, dueDate, tasksTotal, tasksCompleted, color, icon } = project;
   const colors = colorMap[color] || colorMap.indigo;
   const pCfg = priorityConfig[priority] || priorityConfig.Medium;
   const sCfg = statusConfig[status] || statusConfig["In Progress"];
 
+  const hasDueDate = Boolean(dueDate);
   const today = new Date();
-  const due = new Date(dueDate);
-  const daysLeft = Math.ceil((due - today) / (1000 * 60 * 60 * 24));
-  const isOverdue = daysLeft < 0;
-  const isDueSoon = daysLeft >= 0 && daysLeft <= 3;
+  const due = hasDueDate ? new Date(dueDate) : null;
+  const daysLeft = due && !isNaN(due.getTime()) ? Math.ceil((due - today) / (1000 * 60 * 60 * 24)) : null;
+  const isOverdue = daysLeft !== null && daysLeft < 0;
+  const isDueSoon = daysLeft !== null && daysLeft >= 0 && daysLeft <= 3;
 
   return (
     <div className="group bg-white border border-slate-100 rounded-2xl p-5 shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-250 cursor-pointer flex flex-col gap-4 animate-fade-in-up relative overflow-hidden">
@@ -45,21 +46,13 @@ export default function ProjectCard({ project }) {
 
       {/* Header */}
       <div className="flex items-start justify-between gap-2">
-        <div className="flex items-center gap-3">
-          <div
-            className="h-10 w-10 rounded-xl flex items-center justify-center text-xl flex-shrink-0"
-            style={{ background: colors.icon }}
-          >
-            {icon}
-          </div>
-          <div>
-            <h3 className="text-sm font-bold text-slate-800 leading-tight group-hover:text-indigo-700 transition-colors">
-              {name}
-            </h3>
-            <span className={`inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full ring-1 mt-1 ${sCfg.bg} ${sCfg.text} ${sCfg.ring}`}>
-              {status}
-            </span>
-          </div>
+        <div>
+          <h3 className="text-sm font-bold text-slate-800 leading-tight group-hover:text-indigo-700 transition-colors">
+            {name}
+          </h3>
+          <span className={`inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full ring-1 mt-1.5 ${sCfg.bg} ${sCfg.text} ${sCfg.ring}`}>
+            {status}
+          </span>
         </div>
         {/* Priority */}
         <span
@@ -91,39 +84,33 @@ export default function ProjectCard({ project }) {
 
       {/* Footer */}
       <div className="flex items-center justify-between pt-1 border-t border-slate-50">
-        {/* Assignee Avatars */}
-        <div className="flex -space-x-2">
-          {assignees.slice(0, 3).map((a, i) => (
-            <div
-              key={i}
-              title={a.name}
-              className={`h-6 w-6 rounded-full border-2 border-white flex items-center justify-center text-[9px] font-bold ${a.bg} ring-1 ring-white`}
-            >
-              {a.initials}
-            </div>
-          ))}
-          {assignees.length > 3 && (
-            <div className="h-6 w-6 rounded-full border-2 border-white flex items-center justify-center text-[9px] font-bold bg-slate-100 text-slate-500 ring-1 ring-white">
-              +{assignees.length - 3}
-            </div>
-          )}
-        </div>
-
-        {/* Due Date */}
-        <span
-          className={`flex items-center gap-1 text-[11px] font-semibold ${
-            isOverdue ? "text-rose-600" : isDueSoon ? "text-amber-600" : "text-slate-400"
-          }`}
-        >
-          <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-          </svg>
-          {isOverdue
-            ? `${Math.abs(daysLeft)}d overdue`
-            : daysLeft === 0
-            ? "Due today"
-            : `${daysLeft}d left`}
+        <span className="text-[11px] font-semibold text-slate-400 truncate max-w-[50%]">
+          {project.workspace || ''}
         </span>
+
+        {daysLeft !== null ? (
+          <span
+            className={`flex items-center gap-1 text-[11px] font-semibold ${
+              isOverdue ? "text-rose-600" : isDueSoon ? "text-amber-600" : "text-slate-400"
+            }`}
+          >
+            <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            </svg>
+            {isOverdue
+              ? `${Math.abs(daysLeft)}d overdue`
+              : daysLeft === 0
+              ? "Due today"
+              : `${daysLeft}d left`}
+          </span>
+        ) : (
+          <span className="text-[11px] font-semibold text-slate-400 flex items-center gap-1">
+            <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            </svg>
+            No due date
+          </span>
+        )}
       </div>
     </div>
   );

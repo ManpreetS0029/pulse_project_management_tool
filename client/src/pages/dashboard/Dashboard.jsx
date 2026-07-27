@@ -87,7 +87,7 @@ export default function Dashboard() {
             Export
           </button>
           <button
-            onClick={() => navigate("/dashboard/projects")}
+            onClick={() => navigate("/dashboard/projects?new=true")}
             id="dashboard-new-project-btn"
             className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold text-white shadow-sm transition cursor-pointer hover:shadow-md hover:-translate-y-px"
             style={{ background: "linear-gradient(135deg,#6366f1,#8b5cf6)" }}
