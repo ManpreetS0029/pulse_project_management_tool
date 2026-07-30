@@ -24,7 +24,7 @@ const colorMap = {
 };
 
 export default function ProjectCard({ project }) {
-  const { name, description, status, priority, progress, dueDate, tasksTotal, tasksCompleted, color, icon } = project;
+  const { name, description, status, priority, progress, dueDate, tasksTotal, tasksCompleted, color } = project;
   const colors = colorMap[color] || colorMap.indigo;
   const pCfg = priorityConfig[priority] || priorityConfig.Medium;
   const sCfg = statusConfig[status] || statusConfig["In Progress"];

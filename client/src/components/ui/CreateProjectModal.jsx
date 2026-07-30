@@ -2,14 +2,6 @@ import React, { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { apiPrivate } from '../../api/axios';
 
-const WORKSPACES = [
-  'Pulse Dev Core',
-  'Acme Product Suite',
-  'Design System Studio',
-  'Marketing & Growth',
-  'Operations',
-];
-
 const STATUS_OPTIONS = [
   { id: 'In Progress', label: 'In Progress' },
   { id: 'Planning', label: 'Planning' },
@@ -24,22 +16,6 @@ const PRIORITY_OPTIONS = [
   { id: 'Critical', label: 'Critical', color: '#ef4444' },
 ];
 
-const DEFAULT_ASSIGNEES = [
-  { initials: 'SJ', bg: 'bg-blue-100 text-blue-700', name: 'Sarah Jenkins' },
-  {
-    initials: 'MA',
-    bg: 'bg-purple-100 text-purple-700',
-    name: 'Marcus Aurelius',
-  },
-  { initials: 'ER', bg: 'bg-amber-100 text-amber-700', name: 'Elena Rostova' },
-  { initials: 'KS', bg: 'bg-rose-100 text-rose-700', name: 'Kenji Sato' },
-  {
-    initials: 'DM',
-    bg: 'bg-emerald-100 text-emerald-700',
-    name: 'David Miller',
-  },
-];
-
 const getDefaultDueDate = () => {
   const d = new Date();
   d.setDate(d.getDate() + 30);
@@ -50,8 +26,8 @@ export default function CreateProjectModal({
   isOpen,
   onClose,
   onSave,
-  defaultWorkspace = 'Pulse Dev Core',
-  workspaceList = WORKSPACES,
+  defaultWorkspace = '',
+  workspaceList = [],
 }) {
   const {
     register,
@@ -136,14 +112,19 @@ export default function CreateProjectModal({
   };
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-y-auto bg-slate-900/60 backdrop-blur-sm animate-fade-in"
-      onClick={onClose}
-    >
+    <>
+      {/* 100% Full Screen Backdrop Blur Overlay */}
       <div
-        className="relative w-full max-w-xl bg-white rounded-3xl shadow-2xl border border-slate-100 overflow-hidden my-8 transform transition-all animate-scale-up"
-        onClick={(e) => e.stopPropagation()}
-      >
+        className="fixed inset-0 w-screen h-screen min-h-screen bg-slate-950/75 backdrop-blur-md z-[999] animate-fade-in cursor-pointer"
+        onClick={onClose}
+      />
+
+      {/* Modal Content Container */}
+      <div className="fixed inset-0 z-[1000] overflow-y-auto flex items-center justify-center p-4 pointer-events-none">
+        <div
+          className="relative w-full max-w-xl bg-white rounded-3xl shadow-2xl border border-slate-100 overflow-hidden my-8 transform transition-all animate-scale-up pointer-events-auto"
+          onClick={(e) => e.stopPropagation()}
+        >
         {/* Modal Header */}
         <div className="px-6 py-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
           <div className="flex items-center gap-3">
@@ -338,5 +319,6 @@ export default function CreateProjectModal({
         </form>
       </div>
     </div>
+    </>
   );
 }

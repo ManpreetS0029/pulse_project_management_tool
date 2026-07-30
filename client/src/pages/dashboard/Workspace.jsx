@@ -2,7 +2,6 @@ import React, { useEffect, useState } from 'react';
 import MainLayout from '../../components/layout/MainLayout';
 import ProjectCard from '../../components/ui/ProjectCard';
 
-
 import { useForm } from 'react-hook-form';
 import { apiPrivate } from '../../api/axios';
 import { useAuth } from '../../context/AuthContext';
@@ -35,14 +34,16 @@ const normalizeProject = (p) => ({
   workspace:
     p.workspaceName ||
     (typeof p.workspace === 'string' ? p.workspace : '') ||
-    'Pulse Dev Core',
+    '',
   workspaceId: p.workspace?._id || p.workspace,
   status: p.status || 'In Progress',
   priority: p.priority || 'Medium',
   progress: p.progress ?? 0,
   dueDate: p.dueDate ? new Date(p.dueDate).toISOString().split('T')[0] : '',
   tasksTotal: p.tasksTotal ?? (p.tasksCount || 0),
-  tasksCompleted: p.tasksCompleted ?? Math.round(((p.progress || 0) / 100) * (p.tasksCount || 0)),
+  tasksCompleted:
+    p.tasksCompleted ??
+    Math.round(((p.progress || 0) / 100) * (p.tasksCount || 0)),
   color: p.color || 'indigo',
 });
 
@@ -52,37 +53,24 @@ export default function Workspace() {
   const [isWorkspaceDropdownOpen, setIsWorkspaceDropdownOpen] = useState(false);
   const [workspaceProjects, setWorkspaceProjects] = useState([]);
 
-  // Tabs: overview, members, projects, settings
   const [activeTab, setActiveTab] = useState('members');
-
-  // Members state
   const [members, setMembers] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [roleFilter, setRoleFilter] = useState('All');
-
-  // Modals state
   const [isCreateWorkspaceOpen, setIsCreateWorkspaceOpen] = useState(false);
   const [isInviteMemberOpen, setIsInviteMemberOpen] = useState(false);
   const [isDeleteWorkspaceOpen, setIsDeleteWorkspaceOpen] = useState(false);
-
-  // Member management state
   const [isEditMemberOpen, setIsEditMemberOpen] = useState(false);
   const [editingMember, setEditingMember] = useState(null);
   const [memberToDelete, setMemberToDelete] = useState(null);
-
-  // Form inputs for Invite Member
   const [inviteName, setInviteName] = useState('');
   const [inviteEmail, setInviteEmail] = useState('');
   const [inviteDepartment, setInviteDepartment] = useState('');
   const [inviteRole, setInviteRole] = useState('Member');
-
-  // Form inputs for Edit Member
   const [editName, setEditName] = useState('');
   const [editEmail, setEditEmail] = useState('');
   const [editDepartment, setEditDepartment] = useState('');
   const [editRole, setEditRole] = useState('Member');
-
-  // Toast
   const [toast, setToast] = useState('');
 
   const triggerToast = (msg) => {
@@ -130,7 +118,7 @@ export default function Workspace() {
           });
           setWorkspaces(normalized);
           setActiveWorkspace((prev) => {
-            if (!prev || !prev._id || prev.id === 'ws-1') {
+            if (!prev || !prev._id) {
               return normalized[0];
             }
             return prev;
@@ -196,14 +184,14 @@ export default function Workspace() {
               role: roleName,
               avatar: initials,
               bgGradient: 'from-indigo-500 to-violet-600',
-              department: userObj.department || 'Engineering',
+              department: userObj.department || '',
               joinedDate: item.joinedAt
                 ? new Date(item.joinedAt).toLocaleDateString('en-US', {
                     month: 'short',
                     day: 'numeric',
                     year: 'numeric',
                   })
-                : 'Jan 15, 2024',
+                : '',
               status:
                 item.status === 'Active' || item.status === 'ACTIVE'
                   ? 'Active'
@@ -256,7 +244,12 @@ export default function Workspace() {
     };
 
     getWorkspaceProjectsData();
-  }, [auth?.token, activeWorkspace?._id, activeWorkspace?.id, activeWorkspace?.name]);
+  }, [
+    auth?.token,
+    activeWorkspace?._id,
+    activeWorkspace?.id,
+    activeWorkspace?.name,
+  ]);
 
   const {
     register,
@@ -384,44 +377,12 @@ export default function Workspace() {
     }
   };
 
-  // Workspace Switch
   const handleSwitchWorkspace = (ws) => {
     setActiveWorkspace(ws);
     setIsWorkspaceDropdownOpen(false);
     triggerToast(`Switched workspace to "${ws.name}"`);
   };
 
-  // Invite Member Submit
-  const handleInviteMember = (e) => {
-    e.preventDefault();
-    if (!inviteEmail.trim()) return;
-
-    const initials = (inviteName.trim() || inviteEmail)
-      .substring(0, 2)
-      .toUpperCase();
-    const newMember = {
-      id: `mem-${Date.now()}`,
-      name: inviteName.trim() || inviteEmail.split('@')[0],
-      email: inviteEmail,
-      role: inviteRole,
-      avatar: initials,
-      bgGradient: 'from-purple-500 to-indigo-500',
-      department: inviteDepartment.trim() || 'Team Member',
-      joinedDate: 'Just Now',
-      status: 'Pending Invite',
-      tasksCompleted: 0,
-    };
-
-    setMembers([newMember, ...members]);
-    setIsInviteMemberOpen(false);
-    setInviteName('');
-    setInviteEmail('');
-    setInviteDepartment('');
-    setInviteRole('Member');
-    triggerToast(`Invitation sent to ${newMember.name} as ${inviteRole}`);
-  };
-
-  // Edit Member Trigger
   const handleOpenEditMember = (member) => {
     setEditingMember(member);
     setEditName(member.name || '');
@@ -431,7 +392,6 @@ export default function Workspace() {
     setIsEditMemberOpen(true);
   };
 
-  // Edit Member Submit
   const handleEditMemberSubmit = (e) => {
     e.preventDefault();
     if (!editingMember) return;
@@ -461,7 +421,6 @@ export default function Workspace() {
     );
   };
 
-  // Delete Member Confirm
   const handleConfirmDeleteMember = () => {
     if (!memberToDelete) return;
     setMembers(members.filter((item) => item.id !== memberToDelete.id));
@@ -469,7 +428,6 @@ export default function Workspace() {
     setMemberToDelete(null);
   };
 
-  // Role Change handler
   const handleRoleChange = (memberId, newRole) => {
     setMembers(
       members.map((m) => (m.id === memberId ? { ...m, role: newRole } : m)),
@@ -477,7 +435,6 @@ export default function Workspace() {
     triggerToast(`Member role updated to ${newRole}`);
   };
 
-  // Member Search & Filter
   const filteredMembers = members.filter((m) => {
     const matchesSearch =
       m.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -963,9 +920,12 @@ export default function Workspace() {
               <div className="h-16 w-16 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center mx-auto mb-4 text-2xl font-bold">
                 📁
               </div>
-              <h3 className="text-base font-bold text-slate-800">No projects in this workspace</h3>
+              <h3 className="text-base font-bold text-slate-800">
+                No projects in this workspace
+              </h3>
               <p className="text-xs text-slate-400 mt-1">
-                There are currently no active projects created under this workspace.
+                There are currently no active projects created under this
+                workspace.
               </p>
             </div>
           ) : (
@@ -1069,525 +1029,565 @@ export default function Workspace() {
 
       {/* CREATE WORKSPACE MODAL */}
       {isCreateWorkspaceOpen && (
-        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-100 animate-in fade-in zoom-in-95">
-            <div className="flex items-center justify-between pb-4 border-b border-slate-100">
-              <h3 className="text-lg font-black text-slate-900">
-                Create New Workspace
-              </h3>
-              <button
-                onClick={() => setIsCreateWorkspaceOpen(false)}
-                className="p-1 rounded-lg text-slate-400 hover:text-slate-600 cursor-pointer"
-              >
-                <svg
-                  className="h-5 w-5"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M6 18L18 6M6 6l12 12"
-                  />
-                </svg>
-              </button>
-            </div>
-
-            <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 mt-4">
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">
-                  Workspace Name *
-                </label>
-                <input
-                  id="new-workspace-name-input"
-                  type="text"
-                  placeholder="e.g. NextGen Web Team"
-                  {...register('name', {
-                    required: 'Name is required',
-                  })}
-                  className={`w-full px-4 py-2.5 border ${
-                    errors.name
-                      ? 'border-rose-300 focus:ring-rose-500 focus:border-rose-500'
-                      : 'border-slate-200 focus:ring-indigo-500 focus:border-indigo-500'
-                  } rounded-xl text-sm bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/30`}
-                />
-                {errors.name && (
-                  <p className="text-xs text-rose-600 flex items-center gap-1 mt-1">
-                    <svg
-                      className="h-3 w-3"
-                      fill="currentColor"
-                      viewBox="0 0 20 20"
-                    >
-                      <path
-                        fillRule="evenodd"
-                        d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z"
-                        clipRule="evenodd"
-                      />
-                    </svg>
-                    {errors.name.message}
-                  </p>
-                )}
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">
-                  Description
-                </label>
-                <textarea
-                  rows={2}
-                  placeholder="Brief summary of what this workspace is dedicated to..."
-                  {...register('description', {
-                    required: false,
-                  })}
-                  className={`w-full px-4 py-2 border ${
-                    errors.description
-                      ? 'border-rose-300 focus:ring-rose-500 focus:border-rose-500'
-                      : 'border-slate-200 focus:ring-indigo-500 focus:border-indigo-500'
-                  } rounded-xl text-sm bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/30`}
-                />
-                {errors.description && (
-                  <p className="text-xs text-rose-600 flex items-center gap-1 mt-1">
-                    <svg
-                      className="h-3 w-3"
-                      fill="currentColor"
-                      viewBox="0 0 20 20"
-                    >
-                      <path
-                        fillRule="evenodd"
-                        d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z"
-                        clipRule="evenodd"
-                      />
-                    </svg>
-                    {errors.description.message}
-                  </p>
-                )}
-              </div>
-
-              <div className="pt-3 flex items-center justify-end gap-3">
+        <>
+          <div
+            className="fixed inset-0 w-screen h-screen min-h-screen bg-slate-950/75 backdrop-blur-md z-[999] animate-fade-in cursor-pointer"
+            onClick={() => setIsCreateWorkspaceOpen(false)}
+          />
+          <div className="fixed inset-0 z-[1000] overflow-y-auto flex items-center justify-center p-4 pointer-events-none">
+            <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-100 animate-in fade-in zoom-in-95 pointer-events-auto">
+              <div className="flex items-center justify-between pb-4 border-b border-slate-100">
+                <h3 className="text-lg font-black text-slate-900">
+                  Create New Workspace
+                </h3>
                 <button
-                  type="button"
                   onClick={() => setIsCreateWorkspaceOpen(false)}
-                  className="px-4 py-2 rounded-xl text-xs font-bold text-slate-500 hover:bg-slate-100 cursor-pointer"
+                  className="p-1 rounded-lg text-slate-400 hover:text-slate-600 cursor-pointer"
                 >
-                  Cancel
-                </button>
-                <button
-                  id="submit-create-workspace-btn"
-                  type="submit"
-                  className="px-5 py-2.5 rounded-xl text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 shadow-md cursor-pointer"
-                >
-                  Create Workspace
+                  <svg
+                    className="h-5 w-5"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M6 18L18 6M6 6l12 12"
+                    />
+                  </svg>
                 </button>
               </div>
-            </form>
+
+              <form
+                onSubmit={handleSubmit(onSubmit)}
+                className="space-y-4 mt-4"
+              >
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    Workspace Name *
+                  </label>
+                  <input
+                    id="new-workspace-name-input"
+                    type="text"
+                    placeholder="e.g. NextGen Web Team"
+                    {...register('name', {
+                      required: 'Name is required',
+                    })}
+                    className={`w-full px-4 py-2.5 border ${
+                      errors.name
+                        ? 'border-rose-300 focus:ring-rose-500 focus:border-rose-500'
+                        : 'border-slate-200 focus:ring-indigo-500 focus:border-indigo-500'
+                    } rounded-xl text-sm bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/30`}
+                  />
+                  {errors.name && (
+                    <p className="text-xs text-rose-600 flex items-center gap-1 mt-1">
+                      <svg
+                        className="h-3 w-3"
+                        fill="currentColor"
+                        viewBox="0 0 20 20"
+                      >
+                        <path
+                          fillRule="evenodd"
+                          d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z"
+                          clipRule="evenodd"
+                        />
+                      </svg>
+                      {errors.name.message}
+                    </p>
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    Description
+                  </label>
+                  <textarea
+                    rows={2}
+                    placeholder="Brief summary of what this workspace is dedicated to..."
+                    {...register('description', {
+                      required: false,
+                    })}
+                    className={`w-full px-4 py-2 border ${
+                      errors.description
+                        ? 'border-rose-300 focus:ring-rose-500 focus:border-rose-500'
+                        : 'border-slate-200 focus:ring-indigo-500 focus:border-indigo-500'
+                    } rounded-xl text-sm bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/30`}
+                  />
+                  {errors.description && (
+                    <p className="text-xs text-rose-600 flex items-center gap-1 mt-1">
+                      <svg
+                        className="h-3 w-3"
+                        fill="currentColor"
+                        viewBox="0 0 20 20"
+                      >
+                        <path
+                          fillRule="evenodd"
+                          d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z"
+                          clipRule="evenodd"
+                        />
+                      </svg>
+                      {errors.description.message}
+                    </p>
+                  )}
+                </div>
+
+                <div className="pt-3 flex items-center justify-end gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setIsCreateWorkspaceOpen(false)}
+                    className="px-4 py-2 rounded-xl text-xs font-bold text-slate-500 hover:bg-slate-100 cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    id="submit-create-workspace-btn"
+                    type="submit"
+                    className="px-5 py-2.5 rounded-xl text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 shadow-md cursor-pointer"
+                  >
+                    Create Workspace
+                  </button>
+                </div>
+              </form>
+            </div>
           </div>
-        </div>
+        </>
       )}
 
       {/* INVITE MEMBER MODAL */}
       {isInviteMemberOpen && (
-        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-100 animate-in fade-in zoom-in-95">
-            <div className="flex items-center justify-between pb-4 border-b border-slate-100">
-              <h3 className="text-lg font-black text-slate-900">
-                Invite Team Member
-              </h3>
-              <button
-                onClick={() => setIsInviteMemberOpen(false)}
-                className="p-1 rounded-lg text-slate-400 hover:text-slate-600 cursor-pointer"
-              >
-                <svg
-                  className="h-5 w-5"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M6 18L18 6M6 6l12 12"
-                  />
-                </svg>
-              </button>
-            </div>
-
-            <form
-              onSubmit={handleSubmit(onInviteMemberSubmit)}
-              className="space-y-4 mt-4"
-            >
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">
-                  Full Name
-                </label>
-                <input
-                  id="invite-name-input"
-                  type="text"
-                  placeholder="e.g. Jane Doe"
-                  className={`w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/30 ${
-                    errors.name
-                      ? 'border-rose-300 focus:ring-rose-500 focus:border-rose-500'
-                      : 'border-slate-200 focus:ring-indigo-500 focus:border-indigo-500'
-                  }`}
-                  {...register('name', {
-                    required: {
-                      value: true,
-                      message: 'Name is required',
-                    },
-                  })}
-                />
-                {errors.name && (
-                  <p className="text-xs text-rose-600 mt-1">
-                    {errors.name.message}
-                  </p>
-                )}
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">
-                  Email Address *
-                </label>
-                <input
-                  id="invite-email-input"
-                  type="email"
-                  placeholder="colleague@company.com"
-                  className={`w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/30 ${
-                    errors.email
-                      ? 'border-rose-300 focus:ring-rose-500 focus:border-rose-500'
-                      : 'border-slate-200 focus:ring-indigo-500 focus:border-indigo-500'
-                  }`}
-                  {...register('email', {
-                    required: {
-                      value: true,
-                      message: 'Email is required',
-                    },
-                    pattern: {
-                      value: /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/,
-                      message: 'Invalid email address',
-                    },
-                  })}
-                />
-                {errors.email && (
-                  <p className="text-xs text-rose-600 mt-1">
-                    {errors.email.message}
-                  </p>
-                )}
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">
-                  Department / Job Title
-                </label>
-                <input
-                  id="invite-department-input"
-                  type="text"
-                  placeholder="e.g. Frontend Engineering"
-                  className={`w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/30 ${
-                    errors.department
-                      ? 'border-rose-300 focus:ring-rose-500 focus:border-rose-500'
-                      : 'border-slate-200 focus:ring-indigo-500 focus:border-indigo-500'
-                  }`}
-                  {...register('department', {
-                    required: {
-                      value: true,
-                      message: 'Department is required',
-                    },
-                  })}
-                />
-                {errors.department && (
-                  <p className="text-xs text-rose-600 mt-1">
-                    {errors.department.message}
-                  </p>
-                )}
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">
-                  Assign Initial Role
-                </label>
-                <select
-                  className={`w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/30 cursor-pointer font-semibold ${
-                    errors.role
-                      ? 'border-rose-300 focus:ring-rose-500 focus:border-rose-500'
-                      : 'border-slate-200 focus:ring-indigo-500 focus:border-indigo-500'
-                  }`}
-                  {...register('role', {
-                    required: {
-                      value: true,
-                      message: 'Role is required',
-                    },
-                  })}
-                >
-                  <option value="Admin">
-                    Admin (Full project & member controls)
-                  </option>
-                  <option value="Member">
-                    Member (Can edit tasks & projects)
-                  </option>
-                  <option value="Guest">Guest (Read-only access)</option>
-                </select>
-                {errors.role && (
-                  <p className="text-xs text-rose-600 mt-1">
-                    {errors.role.message}
-                  </p>
-                )}
-              </div>
-
-              <div className="pt-3 flex items-center justify-end gap-3">
+        <>
+          <div
+            className="fixed inset-0 w-screen h-screen min-h-screen bg-slate-950/75 backdrop-blur-md z-[999] animate-fade-in cursor-pointer"
+            onClick={() => setIsInviteMemberOpen(false)}
+          />
+          <div className="fixed inset-0 z-[1000] overflow-y-auto flex items-center justify-center p-4 pointer-events-none">
+            <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-100 animate-in fade-in zoom-in-95 pointer-events-auto">
+              <div className="flex items-center justify-between pb-4 border-b border-slate-100">
+                <h3 className="text-lg font-black text-slate-900">
+                  Invite Team Member
+                </h3>
                 <button
-                  type="button"
                   onClick={() => setIsInviteMemberOpen(false)}
-                  className="px-4 py-2 rounded-xl text-xs font-bold text-slate-500 hover:bg-slate-100 cursor-pointer"
+                  className="p-1 rounded-lg text-slate-400 hover:text-slate-600 cursor-pointer"
                 >
-                  Cancel
-                </button>
-                <button
-                  id="submit-invite-member-btn"
-                  type="submit"
-                  className="px-5 py-2.5 rounded-xl text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 shadow-md cursor-pointer"
-                >
-                  Send Invitation
+                  <svg
+                    className="h-5 w-5"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M6 18L18 6M6 6l12 12"
+                    />
+                  </svg>
                 </button>
               </div>
-            </form>
+
+              <form
+                onSubmit={handleSubmit(onInviteMemberSubmit)}
+                className="space-y-4 mt-4"
+              >
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    Full Name
+                  </label>
+                  <input
+                    id="invite-name-input"
+                    type="text"
+                    placeholder="e.g. Jane Doe"
+                    className={`w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/30 ${
+                      errors.name
+                        ? 'border-rose-300 focus:ring-rose-500 focus:border-rose-500'
+                        : 'border-slate-200 focus:ring-indigo-500 focus:border-indigo-500'
+                    }`}
+                    {...register('name', {
+                      required: {
+                        value: true,
+                        message: 'Name is required',
+                      },
+                    })}
+                  />
+                  {errors.name && (
+                    <p className="text-xs text-rose-600 mt-1">
+                      {errors.name.message}
+                    </p>
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    Email Address *
+                  </label>
+                  <input
+                    id="invite-email-input"
+                    type="email"
+                    placeholder="colleague@company.com"
+                    className={`w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/30 ${
+                      errors.email
+                        ? 'border-rose-300 focus:ring-rose-500 focus:border-rose-500'
+                        : 'border-slate-200 focus:ring-indigo-500 focus:border-indigo-500'
+                    }`}
+                    {...register('email', {
+                      required: {
+                        value: true,
+                        message: 'Email is required',
+                      },
+                      pattern: {
+                        value:
+                          /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/,
+                        message: 'Invalid email address',
+                      },
+                    })}
+                  />
+                  {errors.email && (
+                    <p className="text-xs text-rose-600 mt-1">
+                      {errors.email.message}
+                    </p>
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    Department / Job Title
+                  </label>
+                  <input
+                    id="invite-department-input"
+                    type="text"
+                    placeholder="e.g. Frontend Engineering"
+                    className={`w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/30 ${
+                      errors.department
+                        ? 'border-rose-300 focus:ring-rose-500 focus:border-rose-500'
+                        : 'border-slate-200 focus:ring-indigo-500 focus:border-indigo-500'
+                    }`}
+                    {...register('department', {
+                      required: {
+                        value: true,
+                        message: 'Department is required',
+                      },
+                    })}
+                  />
+                  {errors.department && (
+                    <p className="text-xs text-rose-600 mt-1">
+                      {errors.department.message}
+                    </p>
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    Assign Initial Role
+                  </label>
+                  <select
+                    className={`w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/30 cursor-pointer font-semibold ${
+                      errors.role
+                        ? 'border-rose-300 focus:ring-rose-500 focus:border-rose-500'
+                        : 'border-slate-200 focus:ring-indigo-500 focus:border-indigo-500'
+                    }`}
+                    {...register('role', {
+                      required: {
+                        value: true,
+                        message: 'Role is required',
+                      },
+                    })}
+                  >
+                    <option value="Admin">
+                      Admin (Full project & member controls)
+                    </option>
+                    <option value="Member">
+                      Member (Can edit tasks & projects)
+                    </option>
+                    <option value="Guest">Guest (Read-only access)</option>
+                  </select>
+                  {errors.role && (
+                    <p className="text-xs text-rose-600 mt-1">
+                      {errors.role.message}
+                    </p>
+                  )}
+                </div>
+
+                <div className="pt-3 flex items-center justify-end gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setIsInviteMemberOpen(false)}
+                    className="px-4 py-2 rounded-xl text-xs font-bold text-slate-500 hover:bg-slate-100 cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    id="submit-invite-member-btn"
+                    type="submit"
+                    className="px-5 py-2.5 rounded-xl text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 shadow-md cursor-pointer"
+                  >
+                    Send Invitation
+                  </button>
+                </div>
+              </form>
+            </div>
           </div>
-        </div>
+        </>
       )}
 
       {/* EDIT MEMBER MODAL */}
       {isEditMemberOpen && (
-        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-100 animate-in fade-in zoom-in-95">
-            <div className="flex items-center justify-between pb-4 border-b border-slate-100">
-              <h3 className="text-lg font-black text-slate-900">
-                Edit Member Details
-              </h3>
-              <button
-                onClick={() => {
-                  setIsEditMemberOpen(false);
-                  setEditingMember(null);
-                }}
-                className="p-1 rounded-lg text-slate-400 hover:text-slate-600 cursor-pointer"
-              >
-                <svg
-                  className="h-5 w-5"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M6 18L18 6M6 6l12 12"
-                  />
-                </svg>
-              </button>
-            </div>
-
-            <form onSubmit={handleEditMemberSubmit} className="space-y-4 mt-4">
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">
-                  Full Name
-                </label>
-                <input
-                  id="edit-member-name-input"
-                  type="text"
-                  required
-                  placeholder="e.g. Sarah Lin"
-                  value={editName}
-                  onChange={(e) => setEditName(e.target.value)}
-                  className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/30"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">
-                  Email Address
-                </label>
-                <input
-                  id="edit-member-email-input"
-                  type="email"
-                  required
-                  placeholder="sarah@pulse.io"
-                  value={editEmail}
-                  onChange={(e) => setEditEmail(e.target.value)}
-                  className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/30"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">
-                  Department / Job Title
-                </label>
-                <input
-                  id="edit-member-department-input"
-                  type="text"
-                  placeholder="e.g. Product Design"
-                  value={editDepartment}
-                  onChange={(e) => setEditDepartment(e.target.value)}
-                  className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/30"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">
-                  Workspace Role
-                </label>
-                <select
-                  value={normalizeRole(editRole)}
-                  onChange={(e) => setEditRole(e.target.value)}
-                  className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/30 cursor-pointer font-semibold"
-                >
-                  <option value="Admin">Admin</option>
-                  <option value="Member">Member</option>
-                  <option value="Guest">Guest</option>
-                </select>
-              </div>
-
-              <div className="pt-3 flex items-center justify-end gap-3">
+        <>
+          <div
+            className="fixed inset-0 w-screen h-screen min-h-screen bg-slate-950/75 backdrop-blur-md z-[999] animate-fade-in cursor-pointer"
+            onClick={() => {
+              setIsEditMemberOpen(false);
+              setEditingMember(null);
+            }}
+          />
+          <div className="fixed inset-0 z-[1000] overflow-y-auto flex items-center justify-center p-4 pointer-events-none">
+            <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-100 animate-in fade-in zoom-in-95 pointer-events-auto">
+              <div className="flex items-center justify-between pb-4 border-b border-slate-100">
+                <h3 className="text-lg font-black text-slate-900">
+                  Edit Member Details
+                </h3>
                 <button
-                  type="button"
                   onClick={() => {
                     setIsEditMemberOpen(false);
                     setEditingMember(null);
                   }}
-                  className="px-4 py-2 rounded-xl text-xs font-bold text-slate-500 hover:bg-slate-100 cursor-pointer"
+                  className="p-1 rounded-lg text-slate-400 hover:text-slate-600 cursor-pointer"
                 >
-                  Cancel
-                </button>
-                <button
-                  id="submit-edit-member-btn"
-                  type="submit"
-                  className="px-5 py-2.5 rounded-xl text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 shadow-md cursor-pointer"
-                >
-                  Save Changes
+                  <svg
+                    className="h-5 w-5"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M6 18L18 6M6 6l12 12"
+                    />
+                  </svg>
                 </button>
               </div>
-            </form>
+
+              <form
+                onSubmit={handleEditMemberSubmit}
+                className="space-y-4 mt-4"
+              >
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    Full Name
+                  </label>
+                  <input
+                    id="edit-member-name-input"
+                    type="text"
+                    required
+                    placeholder="e.g. Sarah Lin"
+                    value={editName}
+                    onChange={(e) => setEditName(e.target.value)}
+                    className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/30"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    Email Address
+                  </label>
+                  <input
+                    id="edit-member-email-input"
+                    type="email"
+                    required
+                    placeholder="sarah@pulse.io"
+                    value={editEmail}
+                    onChange={(e) => setEditEmail(e.target.value)}
+                    className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/30"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    Department / Job Title
+                  </label>
+                  <input
+                    id="edit-member-department-input"
+                    type="text"
+                    placeholder="e.g. Product Design"
+                    value={editDepartment}
+                    onChange={(e) => setEditDepartment(e.target.value)}
+                    className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/30"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    Workspace Role
+                  </label>
+                  <select
+                    value={normalizeRole(editRole)}
+                    onChange={(e) => setEditRole(e.target.value)}
+                    className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/30 cursor-pointer font-semibold"
+                  >
+                    <option value="Admin">Admin</option>
+                    <option value="Member">Member</option>
+                    <option value="Guest">Guest</option>
+                  </select>
+                </div>
+
+                <div className="pt-3 flex items-center justify-end gap-3">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsEditMemberOpen(false);
+                      setEditingMember(null);
+                    }}
+                    className="px-4 py-2 rounded-xl text-xs font-bold text-slate-500 hover:bg-slate-100 cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    id="submit-edit-member-btn"
+                    type="submit"
+                    className="px-5 py-2.5 rounded-xl text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 shadow-md cursor-pointer"
+                  >
+                    Save Changes
+                  </button>
+                </div>
+              </form>
+            </div>
           </div>
-        </div>
+        </>
       )}
 
       {/* DELETE WORKSPACE CONFIRMATION MODAL */}
       {isDeleteWorkspaceOpen && (
-        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-100 animate-in fade-in zoom-in-95">
-            <div className="flex items-center gap-4 mb-4">
-              <div className="h-12 w-12 rounded-2xl bg-rose-100 text-rose-600 flex items-center justify-center flex-shrink-0">
-                <svg
-                  className="h-6 w-6"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
+        <>
+          <div
+            className="fixed inset-0 w-screen h-screen min-h-screen bg-slate-950/75 backdrop-blur-md z-[999] animate-fade-in cursor-pointer"
+            onClick={() => setIsDeleteWorkspaceOpen(false)}
+          />
+          <div className="fixed inset-0 z-[1000] overflow-y-auto flex items-center justify-center p-4 pointer-events-none">
+            <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-100 animate-in fade-in zoom-in-95 pointer-events-auto">
+              <div className="flex items-center gap-4 mb-4">
+                <div className="h-12 w-12 rounded-2xl bg-rose-100 text-rose-600 flex items-center justify-center flex-shrink-0">
+                  <svg
+                    className="h-6 w-6"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                    />
+                  </svg>
+                </div>
+                <div>
+                  <h3 className="text-lg font-black text-slate-900">
+                    Delete Workspace
+                  </h3>
+                  <p className="text-xs text-slate-500">
+                    This action is irreversible.
+                  </p>
+                </div>
+              </div>
+
+              <p className="text-sm text-slate-600 mb-6 leading-relaxed">
+                Are you sure you want to delete{' '}
+                <span className="font-bold text-slate-900">
+                  "{activeWorkspace?.name}"
+                </span>
+                ? All associated projects, tasks, and settings will be
+                permanently removed.
+              </p>
+
+              <div className="flex items-center justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={() => setIsDeleteWorkspaceOpen(false)}
+                  className="px-4 py-2.5 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100 cursor-pointer"
                 >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
-                  />
-                </svg>
-              </div>
-              <div>
-                <h3 className="text-lg font-black text-slate-900">
+                  Cancel
+                </button>
+                <button
+                  id="confirm-delete-workspace-btn"
+                  type="button"
+                  onClick={deleteWorkspace}
+                  className="px-5 py-2.5 rounded-xl text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 shadow-md cursor-pointer"
+                >
                   Delete Workspace
-                </h3>
-                <p className="text-xs text-slate-500">
-                  This action is irreversible.
-                </p>
+                </button>
               </div>
-            </div>
-
-            <p className="text-sm text-slate-600 mb-6 leading-relaxed">
-              Are you sure you want to delete{' '}
-              <span className="font-bold text-slate-900">
-                "{activeWorkspace?.name}"
-              </span>
-              ? All associated projects, tasks, and settings will be permanently
-              removed.
-            </p>
-
-            <div className="flex items-center justify-end gap-3">
-              <button
-                type="button"
-                onClick={() => setIsDeleteWorkspaceOpen(false)}
-                className="px-4 py-2.5 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100 cursor-pointer"
-              >
-                Cancel
-              </button>
-              <button
-                id="confirm-delete-workspace-btn"
-                type="button"
-                onClick={deleteWorkspace}
-                className="px-5 py-2.5 rounded-xl text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 shadow-md cursor-pointer"
-              >
-                Delete Workspace
-              </button>
             </div>
           </div>
-        </div>
+        </>
       )}
 
       {/* REMOVE MEMBER CONFIRMATION MODAL */}
       {memberToDelete && (
-        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-100 animate-in fade-in zoom-in-95">
-            <div className="flex items-center gap-4 mb-4">
-              <div className="h-12 w-12 rounded-2xl bg-rose-100 text-rose-600 flex items-center justify-center flex-shrink-0">
-                <svg
-                  className="h-6 w-6"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
+        <>
+          <div
+            className="fixed inset-0 w-screen h-screen min-h-screen bg-slate-950/75 backdrop-blur-md z-[999] animate-fade-in cursor-pointer"
+            onClick={() => setMemberToDelete(null)}
+          />
+          <div className="fixed inset-0 z-[1000] overflow-y-auto flex items-center justify-center p-4 pointer-events-none">
+            <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-100 animate-in fade-in zoom-in-95 pointer-events-auto">
+              <div className="flex items-center gap-4 mb-4">
+                <div className="h-12 w-12 rounded-2xl bg-rose-100 text-rose-600 flex items-center justify-center flex-shrink-0">
+                  <svg
+                    className="h-6 w-6"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M13 7a4 4 0 11-8 0 4 4 0 018 0zM9 14a6 6 0 00-6 6v1h12v-1a6 6 0 00-6-6zM21 12h-6"
+                    />
+                  </svg>
+                </div>
+                <div>
+                  <h3 className="text-lg font-black text-slate-900">
+                    Remove Team Member
+                  </h3>
+                  <p className="text-xs text-slate-500">
+                    Revoke workspace access
+                  </p>
+                </div>
+              </div>
+
+              <p className="text-sm text-slate-600 mb-6 leading-relaxed">
+                Are you sure you want to remove{' '}
+                <span className="font-bold text-slate-900">
+                  {memberToDelete.name}
+                </span>{' '}
+                ({memberToDelete.email}) from this workspace?
+              </p>
+
+              <div className="flex items-center justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={() => setMemberToDelete(null)}
+                  className="px-4 py-2.5 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100 cursor-pointer"
                 >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M13 7a4 4 0 11-8 0 4 4 0 018 0zM9 14a6 6 0 00-6 6v1h12v-1a6 6 0 00-6-6zM21 12h-6"
-                  />
-                </svg>
+                  Cancel
+                </button>
+                <button
+                  id="confirm-remove-member-btn"
+                  type="button"
+                  onClick={handleConfirmDeleteMember}
+                  className="px-5 py-2.5 rounded-xl text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 shadow-md cursor-pointer"
+                >
+                  Remove Member
+                </button>
               </div>
-              <div>
-                <h3 className="text-lg font-black text-slate-900">
-                  Remove Team Member
-                </h3>
-                <p className="text-xs text-slate-500">
-                  Revoke workspace access
-                </p>
-              </div>
-            </div>
-
-            <p className="text-sm text-slate-600 mb-6 leading-relaxed">
-              Are you sure you want to remove{' '}
-              <span className="font-bold text-slate-900">
-                {memberToDelete.name}
-              </span>{' '}
-              ({memberToDelete.email}) from this workspace?
-            </p>
-
-            <div className="flex items-center justify-end gap-3">
-              <button
-                type="button"
-                onClick={() => setMemberToDelete(null)}
-                className="px-4 py-2.5 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100 cursor-pointer"
-              >
-                Cancel
-              </button>
-              <button
-                id="confirm-remove-member-btn"
-                type="button"
-                onClick={handleConfirmDeleteMember}
-                className="px-5 py-2.5 rounded-xl text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 shadow-md cursor-pointer"
-              >
-                Remove Member
-              </button>
             </div>
           </div>
-        </div>
+        </>
       )}
     </MainLayout>
   );

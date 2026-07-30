@@ -13,7 +13,7 @@ export default function WorkspaceInvite() {
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState('');
   const [actionLoading, setActionLoading] = useState(false);
-  const [status, setStatus] = useState('pending'); // 'pending' | 'accepted' | 'rejected' | 'error'
+  const [status, setStatus] = useState('pending');
   const [toast, setToast] = useState('');
 
   const triggerToast = (msg) => {
@@ -36,7 +36,6 @@ export default function WorkspaceInvite() {
         setWorkspace(wsData);
       } catch (err) {
         console.error('Error fetching workspace for invitation:', err);
-        // Fallback info if GET /workspace fails or requires member access prior to joining
         setWorkspace({
           _id: workspaceId,
           name: 'Workspace Invitation',

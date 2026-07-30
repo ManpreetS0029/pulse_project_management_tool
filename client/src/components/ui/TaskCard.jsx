@@ -16,8 +16,8 @@ const projectColorMap = {
   amber:   "#f59e0b",
 };
 
-export default function TaskCard({ task }) {
-  const { id, title, priority, project, projectColor, dueDate, assignee, tags = [] } = task;
+export default function TaskCard({ task, onClick }) {
+  const { id, title, priority, project, projectColor, dueDate, assignee, tags = [], files = [], commentsCount = 0, subtasks = [] } = task;
   const pCfg = priorityConfig[priority] || priorityConfig.Medium;
   const projColor = projectColorMap[projectColor] || "#6366f1";
 
@@ -27,8 +27,13 @@ export default function TaskCard({ task }) {
   const isOverdue = daysLeft < 0;
   const isDueSoon = daysLeft >= 0 && daysLeft <= 1;
 
+  const filesLength = Array.isArray(files) ? files.length : (task.attachmentsCount || 0);
+
   return (
-    <div className="bg-white border border-slate-100 rounded-xl p-4 shadow-xs hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 cursor-pointer group">
+    <div
+      onClick={onClick}
+      className="bg-white border border-slate-100 rounded-xl p-4 shadow-xs hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 cursor-pointer group"
+    >
       {/* Priority bar */}
       <div
         className="w-full h-0.5 rounded-full mb-3 opacity-60"
@@ -62,6 +67,27 @@ export default function TaskCard({ task }) {
               #{tag}
             </span>
           ))}
+        </div>
+      )}
+
+      {/* Indicator Icons (Files, Comments, Subtasks) */}
+      {(filesLength > 0 || commentsCount > 0 || subtasks.length > 0) && (
+        <div className="flex items-center gap-3 mb-3 text-[11px] font-semibold text-slate-400">
+          {filesLength > 0 && (
+            <span className="flex items-center gap-1 text-slate-500" title="Attachments">
+              📎 {filesLength}
+            </span>
+          )}
+          {commentsCount > 0 && (
+            <span className="flex items-center gap-1 text-slate-500" title="Comments">
+              💬 {commentsCount}
+            </span>
+          )}
+          {subtasks.length > 0 && (
+            <span className="flex items-center gap-1 text-slate-500" title="Subtasks">
+              ☑ {subtasks.filter(s => s.completed).length}/{subtasks.length}
+            </span>
+          )}
         </div>
       )}
 

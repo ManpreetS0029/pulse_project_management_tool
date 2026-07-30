@@ -1,18 +1,60 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import MainLayout from "../../components/layout/MainLayout";
-import { teamMembers } from "../../data/mockAnalytics";
-
-const departments = ["All", ...new Set(teamMembers.map((m) => m.department))];
+import { apiPrivate } from "../../api/axios";
 
 export default function Team() {
+  const [teamMembers, setTeamMembers] = useState([]);
   const [activeFilter, setActiveFilter] = useState("All");
   const [search, setSearch] = useState("");
   const [toast, setToast] = useState("");
+
+  useEffect(() => {
+    const fetchTeamMembers = async () => {
+      try {
+        const response = await apiPrivate.get('/workspaces/my-workspaces');
+        const rawData = response.data?.data || response.data;
+        if (Array.isArray(rawData) && rawData.length > 0) {
+          const firstWs = rawData[0]?.workspace || rawData[0];
+          const wsId = firstWs._id || firstWs.id;
+          if (wsId) {
+            const membersRes = await apiPrivate.get(`/workspaces/${wsId}/members`);
+            const rawMembers = membersRes.data?.data || membersRes.data?.members || membersRes.data;
+            if (Array.isArray(rawMembers)) {
+              const normalized = rawMembers.map((m, idx) => {
+                const userObj = m.user || m;
+                const name = [userObj.firstName, userObj.lastName].filter(Boolean).join(' ') || userObj.name || userObj.username || userObj.email || 'Team Member';
+                const initials = name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() || 'TM';
+                return {
+                  id: userObj._id || userObj.id || `mem-${idx}`,
+                  name,
+                  initials,
+                  role: m.role || userObj.role || 'Member',
+                  department: m.department || userObj.department || '',
+                  email: userObj.email || '',
+                  activeTasks: 0,
+                  completedTasks: 0,
+                  projects: [],
+                  avatarBg: '#6366f1, #8b5cf6',
+                };
+              });
+              setTeamMembers(normalized);
+            }
+          }
+        }
+      } catch (err) {
+        console.error('Failed to fetch team members:', err);
+      }
+    };
+
+    fetchTeamMembers();
+  }, []);
 
   const triggerToast = (msg) => {
     setToast(msg);
     setTimeout(() => setToast(""), 3000);
   };
+
+  const departments = ["All", ...new Set(teamMembers.map((m) => m.department))];
 
   const filtered = teamMembers.filter((m) => {
     const matchDept = activeFilter === "All" || m.department === activeFilter;
@@ -22,12 +64,10 @@ export default function Team() {
     return matchDept && matchSearch;
   });
 
-  const onlineCount = teamMembers.filter((m) => m.online).length;
   const totalTasks = teamMembers.reduce((a, m) => a + m.activeTasks, 0);
 
   return (
     <MainLayout>
-      {/* Toast */}
       {toast && (
         <div
           className="fixed bottom-6 right-6 z-50 flex items-center gap-2.5 px-5 py-3 rounded-2xl shadow-2xl text-white text-sm font-semibold toast-enter"
@@ -40,16 +80,11 @@ export default function Team() {
         </div>
       )}
 
-      {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 animate-fade-in-up">
         <div>
           <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">Team</h1>
           <p className="text-sm text-slate-500 mt-1">
-            <span className="inline-flex items-center gap-1 font-semibold text-emerald-600">
-              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-              {onlineCount} online
-            </span>{" "}
-            · {teamMembers.length} total members · {totalTasks} active tasks
+            {teamMembers.length} total members · {totalTasks} active tasks
           </p>
         </div>
         <button
@@ -65,15 +100,13 @@ export default function Team() {
         </button>
       </div>
 
-      {/* Stats Row */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 animate-fade-in-up stagger">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 animate-fade-in-up stagger">
         {[
           { label: "Total Members", value: teamMembers.length, icon: "👥" },
-          { label: "Online Now", value: onlineCount, icon: "🟢" },
           { label: "Active Tasks", value: totalTasks, icon: "📋" },
           {
             label: "Avg. Completed",
-            value: Math.round(teamMembers.reduce((a, m) => a + m.completedTasks, 0) / teamMembers.length),
+            value: teamMembers.length > 0 ? Math.round(teamMembers.reduce((a, m) => a + m.completedTasks, 0) / teamMembers.length) : 0,
             icon: "✅",
           },
         ].map(({ label, value, icon }) => (
@@ -88,7 +121,6 @@ export default function Team() {
         ))}
       </div>
 
-      {/* Search + Filter */}
       <div className="flex flex-col sm:flex-row sm:items-center gap-3 animate-fade-in-up">
         <div className="relative flex-1 max-w-sm">
           <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -123,7 +155,6 @@ export default function Team() {
         </div>
       </div>
 
-      {/* Members Grid */}
       {filtered.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-20 animate-fade-in">
           <div className="text-4xl mb-3">🔍</div>
@@ -138,7 +169,6 @@ export default function Team() {
               className="bg-white border border-slate-100 rounded-2xl p-5 shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-200 cursor-pointer group animate-fade-in-up"
               style={{ animationDelay: `${idx * 60}ms` }}
             >
-              {/* Header */}
               <div className="flex items-start justify-between mb-4">
                 <div className="flex items-center gap-3">
                   <div className="relative">
@@ -148,12 +178,6 @@ export default function Team() {
                     >
                       {member.initials}
                     </div>
-                    <span
-                      className={`absolute -bottom-0.5 -right-0.5 h-3.5 w-3.5 rounded-full border-2 border-white ${
-                        member.online ? "bg-emerald-500" : "bg-slate-300"
-                      }`}
-                      title={member.online ? "Online" : "Offline"}
-                    />
                   </div>
                   <div>
                     <h3 className="text-sm font-bold text-slate-800 group-hover:text-indigo-700 transition-colors">
@@ -167,7 +191,6 @@ export default function Team() {
                 </span>
               </div>
 
-              {/* Email */}
               <div className="flex items-center gap-2 text-xs text-slate-400 mb-4">
                 <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
@@ -175,7 +198,6 @@ export default function Team() {
                 <span className="truncate">{member.email}</span>
               </div>
 
-              {/* Stats */}
               <div className="flex items-center gap-3 mb-4">
                 <div className="flex-1 bg-slate-50 rounded-xl p-2.5 text-center">
                   <div className="text-lg font-extrabold text-slate-800">{member.activeTasks}</div>
@@ -191,7 +213,6 @@ export default function Team() {
                 </div>
               </div>
 
-              {/* Project Tags */}
               <div className="flex flex-wrap gap-1.5 mb-4">
                 {member.projects.slice(0, 2).map((proj) => (
                   <span
@@ -208,7 +229,6 @@ export default function Team() {
                 )}
               </div>
 
-              {/* Actions */}
               <div className="flex gap-2 pt-3 border-t border-slate-50">
                 <button
                   onClick={() => triggerToast(`Message sent to ${member.name}`)}

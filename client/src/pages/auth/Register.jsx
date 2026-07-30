@@ -66,7 +66,6 @@ export default function Register() {
       )}
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-        {/* Name Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="space-y-1.5">
             <label
@@ -143,7 +142,6 @@ export default function Register() {
           </div>
         </div>
 
-        {/* Username & Phone Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="space-y-1.5">
             <label
@@ -228,7 +226,6 @@ export default function Register() {
           </div>
         </div>
 
-        {/* Email */}
         <div className="space-y-1.5">
           <label
             htmlFor="email"
@@ -262,14 +259,12 @@ export default function Register() {
           )}
         </div>
 
-        {/* Role Cards */}
         <div className="space-y-2">
           <label className="block text-sm font-semibold text-slate-700">
             Select Your Role
             <span className="ml-0.5 text-rose-500">*</span>
           </label>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            {/* Member */}
             <label
               className={`flex flex-col items-center justify-center p-3 border rounded-xl cursor-pointer transition-all duration-150 text-center relative ${
                 selectedRole === 'MEMBER'
@@ -312,7 +307,6 @@ export default function Register() {
               </span>
             </label>
 
-            {/* Project Manager */}
             <label
               className={`flex flex-col items-center justify-center p-3 border rounded-xl cursor-pointer transition-all duration-150 text-center relative ${
                 selectedRole === 'PROJECT_MANAGER'
@@ -355,7 +349,6 @@ export default function Register() {
               </span>
             </label>
 
-            {/* Admin */}
             <label
               className={`flex flex-col items-center justify-center p-3 border rounded-xl cursor-pointer transition-all duration-150 text-center relative ${
                 selectedRole === 'ADMIN'
@@ -412,7 +405,6 @@ export default function Register() {
           )}
         </div>
 
-        {/* Passwords Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="space-y-1.5">
             <label

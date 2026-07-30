@@ -52,7 +52,6 @@ export default function Dashboard() {
 
   return (
     <MainLayout>
-      {/* Toast */}
       {toast && (
         <div className="fixed bottom-6 right-6 z-50 flex items-center gap-2.5 px-5 py-3 rounded-2xl shadow-2xl text-white text-sm font-semibold toast-enter"
           style={{ background: "linear-gradient(135deg,#0f0e1a,#1e1b4b)", border: "1px solid rgba(99,102,241,0.3)" }}
@@ -64,7 +63,6 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* Page Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 animate-fade-in-up">
         <div>
           <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">
@@ -100,7 +98,6 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5 stagger">
         {kpiData.map((kpi) => (
           <KPI
@@ -115,7 +112,6 @@ export default function Dashboard() {
         ))}
       </div>
 
-      {/* Active Projects Strip */}
       <div className="animate-fade-in-up">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-sm font-bold text-slate-800">Active Projects</h2>
@@ -139,7 +135,11 @@ export default function Dashboard() {
                 onClick={() => navigate("/dashboard/projects")}
               >
                 <div className="flex items-center gap-2.5 mb-3">
-                  <span className="text-xl">{project.icon}</span>
+                  <div className="h-8 w-8 rounded-xl bg-slate-100 flex items-center justify-center text-slate-500 flex-shrink-0">
+                    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V7z" />
+                    </svg>
+                  </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-bold text-slate-800 truncate group-hover:text-indigo-700 transition-colors">
                       {project.name}
@@ -175,21 +175,16 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Charts + Activity */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-        {/* Line Chart */}
         <div className="lg:col-span-2 bg-white border border-slate-100 rounded-2xl p-6 shadow-sm animate-fade-in-up">
           <ChartLine data={taskCompletionData} />
         </div>
-        {/* Activity Feed */}
         <div className="animate-fade-in-up" style={{ animationDelay: "60ms" }}>
           <ActivityFeed activities={activityFeed} />
         </div>
       </div>
 
-      {/* My Tasks Today + Quick Actions */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-        {/* My Tasks Today */}
         <div className="lg:col-span-2 bg-white border border-slate-100 rounded-2xl p-5 shadow-sm animate-fade-in-up">
           <div className="flex items-center justify-between mb-4">
             <div>
@@ -240,7 +235,6 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Quick Actions */}
         <div className="bg-white border border-slate-100 rounded-2xl p-5 shadow-sm animate-fade-in-up" style={{ animationDelay: "60ms" }}>
           <h3 className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-4">
             Quick Actions
@@ -299,7 +293,6 @@ export default function Dashboard() {
             ))}
           </div>
 
-          {/* System Status */}
           <div
             className="mt-4 rounded-xl p-4"
             style={{ background: "linear-gradient(135deg, #0f0e1a, #0d0f1e)", border: "1px solid rgba(99,102,241,0.15)" }}

@@ -13,6 +13,7 @@ const authRoutes = require('./routes/auth.routes.js');
 const userRoutes = require('./routes/user.routes.js');
 const workspaceRoutes = require('./routes/workspace.routes.js');
 const projectRoutes = require('./routes/project.routes.js');
+const taskRoutes = require('./routes/task.routes.js');
 
 const app = express();
 
@@ -33,6 +34,8 @@ app.use('/api/workspace', workspaceRoutes);
 app.use('/api/workspaces', workspaceRoutes);
 app.use('/api/project', projectRoutes);
 app.use('/api/projects', projectRoutes);
+app.use('/api/tasks', taskRoutes);
+app.use('/api/task', taskRoutes);
 
 const PORT = 3000;
 

@@ -42,7 +42,7 @@ export default function Topbar({ onToggleSidebar }) {
   };
 
   return (
-    <header className="h-16 bg-white/80 backdrop-blur-md border-b border-slate-100/80 flex items-center justify-between px-4 sm:px-6 sticky top-0 z-30 gap-4">
+    <header className="h-16 bg-white/80 backdrop-blur-md border-b border-slate-100/80 flex items-center justify-between px-4 sm:px-6 sticky top-0 z-50 gap-4">
       {/* Left */}
       <div className="flex items-center gap-3 min-w-0">
         <button
@@ -76,39 +76,6 @@ export default function Topbar({ onToggleSidebar }) {
               day: 'numeric',
             })}
           </p>
-        </div>
-      </div>
-
-      {/* Center: Search */}
-      <div className="flex-1 max-w-xs hidden sm:block">
-        <div className="relative">
-          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-            <svg
-              className="h-4 w-4 text-slate-400"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-              />
-            </svg>
-          </div>
-          <input
-            id="topbar-search"
-            type="text"
-            placeholder="Search projects, tasks..."
-            aria-label="Search"
-            className="block w-full pl-9 pr-10 py-2 border border-slate-200 rounded-xl text-sm bg-slate-50/70 text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-400 focus:bg-white transition"
-          />
-          <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
-            <kbd className="hidden sm:inline-flex items-center px-1.5 py-0.5 text-[10px] font-semibold text-slate-400 bg-slate-100 border border-slate-200 rounded">
-              ⌘K
-            </kbd>
-          </div>
         </div>
       </div>
 
@@ -159,10 +126,6 @@ export default function Topbar({ onToggleSidebar }) {
                 d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"
               />
             </svg>
-            <span
-              className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-rose-500 ring-2 ring-white"
-              aria-hidden="true"
-            />
           </button>
 
           {isNotificationsOpen && (
@@ -176,31 +139,12 @@ export default function Topbar({ onToggleSidebar }) {
                   <span className="text-xs font-bold text-slate-800">
                     Notifications
                   </span>
-                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-600">
-                    3 New
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-500">
+                    0 New
                   </span>
                 </div>
-                <div className="divide-y divide-slate-100 text-xs max-h-60 overflow-y-auto">
-                  <div className="p-3 hover:bg-slate-50 transition cursor-pointer">
-                    <p className="font-bold text-slate-800">
-                      Manpreet Singh invited you
-                    </p>
-                    <p className="text-slate-500 mt-0.5">
-                      To join "Pulse Dev Core" workspace
-                    </p>
-                    <span className="text-[10px] text-slate-400 mt-1 block">
-                      5m ago
-                    </span>
-                  </div>
-                  <div className="p-3 hover:bg-slate-50 transition cursor-pointer">
-                    <p className="font-bold text-slate-800">Task Assigned</p>
-                    <p className="text-slate-500 mt-0.5">
-                      RBAC authorization middleware
-                    </p>
-                    <span className="text-[10px] text-slate-400 mt-1 block">
-                      1h ago
-                    </span>
-                  </div>
+                <div className="p-6 text-center text-xs text-slate-400 font-medium">
+                  No new notifications
                 </div>
               </div>
             </>

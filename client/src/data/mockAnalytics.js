@@ -53,7 +53,6 @@ export const projects = [
     tasksTotal: 42,
     tasksCompleted: 28,
     color: "indigo",
-    icon: "🌐",
     assignees: [
       { initials: "SJ", bg: "bg-blue-100 text-blue-700", name: "Sarah Jenkins" },
       { initials: "MA", bg: "bg-purple-100 text-purple-700", name: "Marcus Aurelius" },
@@ -71,7 +70,6 @@ export const projects = [
     tasksTotal: 78,
     tasksCompleted: 33,
     color: "violet",
-    icon: "📱",
     assignees: [
       { initials: "KS", bg: "bg-rose-100 text-rose-700", name: "Kenji Sato" },
       { initials: "DM", bg: "bg-emerald-100 text-emerald-700", name: "David Miller" },
@@ -88,7 +86,6 @@ export const projects = [
     tasksTotal: 31,
     tasksCompleted: 28,
     color: "sky",
-    icon: "⚡",
     assignees: [
       { initials: "ER", bg: "bg-amber-100 text-amber-700", name: "Elena Rostova" },
       { initials: "MA", bg: "bg-purple-100 text-purple-700", name: "Marcus Aurelius" },
@@ -106,7 +103,6 @@ export const projects = [
     tasksTotal: 24,
     tasksCompleted: 24,
     color: "emerald",
-    icon: "📊",
     assignees: [
       { initials: "DM", bg: "bg-emerald-100 text-emerald-700", name: "David Miller" },
       { initials: "KS", bg: "bg-rose-100 text-rose-700", name: "Kenji Sato" },
@@ -123,7 +119,6 @@ export const projects = [
     tasksTotal: 60,
     tasksCompleted: 33,
     color: "pink",
-    icon: "🎨",
     assignees: [
       { initials: "SJ", bg: "bg-blue-100 text-blue-700", name: "Sarah Jenkins" },
     ],
@@ -139,7 +134,6 @@ export const projects = [
     tasksTotal: 55,
     tasksCompleted: 7,
     color: "amber",
-    icon: "🚀",
     assignees: [
       { initials: "MA", bg: "bg-purple-100 text-purple-700", name: "Marcus Aurelius" },
       { initials: "DM", bg: "bg-emerald-100 text-emerald-700", name: "David Miller" },

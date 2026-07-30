@@ -3,8 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import MainLayout from '../../components/layout/MainLayout';
 import ProjectCard from '../../components/ui/ProjectCard';
 import CreateProjectModal from '../../components/ui/CreateProjectModal';
-import { projects as initialProjects } from '../../data/mockAnalytics';
-
+import CreateTaskModal from '../../components/ui/CreateTaskModal';
 import { apiPrivate } from '../../api/axios';
 
 const FILTERS = ['All', 'In Progress', 'Review', 'Planning', 'Completed'];
@@ -25,7 +24,7 @@ const normalizeProject = (p) => ({
   workspace:
     p.workspaceName ||
     (typeof p.workspace === 'string' ? p.workspace : '') ||
-    'Pulse Dev Core',
+    '',
   workspaceId: p.workspace?._id || p.workspace,
   status: p.status || 'In Progress',
   priority: p.priority || 'Medium',
@@ -44,15 +43,13 @@ export default function Projects() {
   const [selectedWorkspace, setSelectedWorkspace] = useState(null);
   const [isWsDropdownOpen, setIsWsDropdownOpen] = useState(false);
 
-  const [projectList, setProjectList] = useState(
-    initialProjects.map(normalizeProject),
-  );
+  const [projectList, setProjectList] = useState([]);
   const [activeFilter, setActiveFilter] = useState('All');
   const [search, setSearch] = useState('');
   const [toast, setToast] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
 
-  // Fetch workspaces if user is authenticated
   useEffect(() => {
     const fetchUserWorkspaces = async () => {
       try {
@@ -82,7 +79,6 @@ export default function Projects() {
     fetchUserWorkspaces();
   }, []);
 
-  // Fetch projects from backend
   useEffect(() => {
     const fetchBackendProjects = async () => {
       try {
@@ -99,14 +95,12 @@ export default function Projects() {
           });
         }
       } catch (err) {
-        // Silent fallback
       }
     };
 
     fetchBackendProjects();
   }, []);
 
-  // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (e) => {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
@@ -123,7 +117,6 @@ export default function Projects() {
     }
   }, [location]);
 
-  // Filter projects by workspace if a specific workspace is chosen
   const workspaceFilteredProjects = projectList.filter((p) => {
     if (
       !selectedWorkspace ||
@@ -138,22 +131,12 @@ export default function Projects() {
     const projWs = (p.workspace || '').toLowerCase();
     const projWsId = String(p.workspaceId || p.workspace || '');
 
-    // 1. Direct ID match
     if (selId && projWsId && selId === projWsId) {
       return true;
     }
-    // 2. Direct Name match
     if (selName && projWs && projWs === selName) {
       return true;
     }
-    // 3. Fallback for mock projects without explicit workspace property when main workspace selected
-    if (
-      (!p.workspace || p.workspace === 'Pulse Dev Core') &&
-      (selName === 'pulse dev core' || !selectedWorkspace.name)
-    ) {
-      return true;
-    }
-
     return false;
   });
 
@@ -187,9 +170,24 @@ export default function Projects() {
     }
   };
 
+  const handleSaveTaskFromProjects = (taskData) => {
+    setProjectList((prev) =>
+      prev.map((proj) => {
+        if (proj.name === taskData.project) {
+          return {
+            ...proj,
+            tasksTotal: (proj.tasksTotal || 0) + 1,
+          };
+        }
+        return proj;
+      })
+    );
+    setIsTaskModalOpen(false);
+    triggerToast(`Task "${taskData.title}" added to ${taskData.project}!`);
+  };
+
   return (
     <MainLayout>
-      {/* Toast */}
       {toast && (
         <div
           className="fixed bottom-6 right-6 z-50 flex items-center gap-2.5 px-5 py-3 rounded-2xl shadow-2xl text-white text-sm font-semibold toast-enter"
@@ -215,10 +213,8 @@ export default function Projects() {
         </div>
       )}
 
-      {/* Header */}
       <div className="relative z-30 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 animate-fade-in-up">
         <div>
-          {/* Workspace Selector Dropdown */}
           <div className="relative inline-block mb-2 z-40" ref={dropdownRef}>
             <button
               onClick={() => setIsWsDropdownOpen(!isWsDropdownOpen)}
@@ -229,7 +225,7 @@ export default function Projects() {
               </span>
               <span className="text-slate-400 font-normal">Workspace:</span>
               <span className="font-extrabold text-indigo-950 group-hover:text-indigo-600 transition-colors">
-                {selectedWorkspace?.name || 'Pulse Dev Core'}
+                {selectedWorkspace?.name || 'All Workspaces'}
               </span>
               <svg
                 className={`h-3.5 w-3.5 text-slate-400 transition-transform duration-200 ${
@@ -248,7 +244,6 @@ export default function Projects() {
               </svg>
             </button>
 
-            {/* Dropdown Menu */}
             {isWsDropdownOpen && (
               <div className="absolute left-0 mt-2 w-72 bg-white rounded-2xl shadow-2xl border border-slate-100 p-2 z-50 animate-scale-up">
                 <div className="px-3 py-2 border-b border-slate-100 flex items-center justify-between">
@@ -260,7 +255,6 @@ export default function Projects() {
                   </span>
                 </div>
                 <div className="py-1 space-y-1 max-h-60 overflow-y-auto">
-                  {/* Option for All Workspaces */}
                   <button
                     onClick={() => {
                       setSelectedWorkspace({
@@ -367,39 +361,59 @@ export default function Projects() {
           <p className="text-sm text-slate-500 mt-1">
             Showing projects in{' '}
             <span className="font-semibold text-slate-700">
-              {selectedWorkspace?.name || 'Pulse Dev Core'}
+              {selectedWorkspace?.name || 'All Workspaces'}
             </span>{' '}
             · {counts['In Progress']} active · {counts.Review} in review ·{' '}
             {counts.Completed} completed
           </p>
         </div>
 
-        <button
-          id="projects-new-btn"
-          onClick={() => setIsModalOpen(true)}
-          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold text-white shadow-sm transition cursor-pointer hover:shadow-lg hover:shadow-indigo-500/30 hover:-translate-y-px"
-          style={{ background: 'linear-gradient(135deg,#6366f1,#8b5cf6)' }}
-        >
-          <svg
-            className="h-4 w-4"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
+        <div className="flex items-center gap-2.5">
+          <button
+            id="projects-add-task-btn"
+            onClick={() => setIsTaskModalOpen(true)}
+            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold text-indigo-700 bg-indigo-50 border border-indigo-200 shadow-xs transition cursor-pointer hover:bg-indigo-100 hover:-translate-y-px"
           >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2.5}
-              d="M12 4v16m8-8H4"
-            />
-          </svg>
-          New Project
-        </button>
+            <svg
+              className="h-4 w-4 text-indigo-600"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2.5}
+                d="M12 4v16m8-8H4"
+              />
+            </svg>
+            Add Task
+          </button>
+          <button
+            id="projects-new-btn"
+            onClick={() => setIsModalOpen(true)}
+            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold text-white shadow-sm transition cursor-pointer hover:shadow-lg hover:shadow-indigo-500/30 hover:-translate-y-px"
+            style={{ background: 'linear-gradient(135deg,#6366f1,#8b5cf6)' }}
+          >
+            <svg
+              className="h-4 w-4"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2.5}
+                d="M12 4v16m8-8H4"
+              />
+            </svg>
+            New Project
+          </button>
+        </div>
       </div>
 
-      {/* Search + Filters */}
       <div className="relative z-10 flex flex-col sm:flex-row sm:items-center gap-3 animate-fade-in-up mt-6">
-        {/* Search */}
         <div className="relative flex-1 max-w-sm">
           <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
             <svg
@@ -426,7 +440,6 @@ export default function Projects() {
           />
         </div>
 
-        {/* Filter Tabs */}
         <div className="flex items-center gap-1 bg-slate-100/80 p-1 rounded-xl">
           {FILTERS.map((f) => (
             <button
@@ -454,7 +467,6 @@ export default function Projects() {
         </div>
       </div>
 
-      {/* Projects Grid */}
       {filtered.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-20 animate-fade-in">
           <div className="h-16 w-16 rounded-2xl bg-slate-100 flex items-center justify-center text-2xl mb-4">
@@ -475,7 +487,6 @@ export default function Projects() {
         </div>
       )}
 
-      {/* Summary Bar */}
       <div className="flex flex-wrap items-center gap-6 pt-4 border-t border-slate-100 animate-fade-in-up mt-6">
         {[
           { label: 'Total Projects', value: workspaceFilteredProjects.length },
@@ -507,13 +518,19 @@ export default function Projects() {
         ))}
       </div>
 
-      {/* Create New Project Modal Form */}
       <CreateProjectModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         onSave={handleSaveProject}
-        defaultWorkspace={selectedWorkspace?.name || 'Pulse Dev Core'}
+        defaultWorkspace={selectedWorkspace?.name || ''}
         workspaceList={workspaces.map((w) => w.name)}
+      />
+
+      <CreateTaskModal
+        isOpen={isTaskModalOpen}
+        onClose={() => setIsTaskModalOpen(false)}
+        onSaveTask={handleSaveTaskFromProjects}
+        initialProject={selectedWorkspace?.name || ''}
       />
     </MainLayout>
   );
