@@ -1,40 +1,40 @@
-import React, { useState } from "react";
-import ReactQuill from "react-quill-new";
-import "react-quill-new/dist/quill.snow.css";
+import React, { useState } from 'react';
+import ReactQuill from 'react-quill-new';
+import 'react-quill-new/dist/quill.snow.css';
 
 const modules = {
   toolbar: [
     [{ header: [1, 2, 3, false] }],
-    ["bold", "italic", "underline", "strike"],
+    ['bold', 'italic', 'underline', 'strike'],
     [{ color: [] }, { background: [] }],
-    [{ list: "ordered" }, { list: "bullet" }, { list: "check" }],
+    [{ list: 'ordered' }, { list: 'bullet' }, { list: 'check' }],
     [{ align: [] }],
-    ["blockquote", "code-block"],
-    ["link", "clean"]
-  ]
+    ['blockquote', 'code-block'],
+    ['link', 'clean'],
+  ],
 };
 
 const formats = [
-  "header",
-  "bold",
-  "italic",
-  "underline",
-  "strike",
-  "color",
-  "background",
-  "list",
-  "check",
-  "align",
-  "blockquote",
-  "code-block",
-  "link"
+  'header',
+  'bold',
+  'italic',
+  'underline',
+  'strike',
+  'color',
+  'background',
+  'list',
+  'check',
+  'align',
+  'blockquote',
+  'code-block',
+  'link',
 ];
 
 export default function RichTextEditor({
-  value = "",
+  value = '',
   onChange,
-  placeholder = "Write detailed task specifications, formatted instructions, or notes...",
-  minHeight = "220px"
+  placeholder = 'Write detailed task specifications, formatted instructions, or notes...',
+  minHeight = '220px',
 }) {
   const [readOnlyMode, setReadOnlyMode] = useState(false);
 
@@ -46,16 +46,15 @@ export default function RichTextEditor({
           <span className="text-xs font-bold text-slate-700 uppercase tracking-wider">
             Task Description
           </span>
-          <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-100">
-            ReactQuill (Quill.js)
-          </span>
         </div>
         <div className="flex items-center gap-1 bg-white border border-slate-200 p-0.5 rounded-xl text-[11px] font-bold">
           <button
             type="button"
             onClick={() => setReadOnlyMode(false)}
             className={`px-2.5 py-1 rounded-lg transition cursor-pointer ${
-              !readOnlyMode ? "bg-indigo-600 text-white shadow-2xs" : "text-slate-500 hover:text-slate-800"
+              !readOnlyMode
+                ? 'bg-indigo-600 text-white shadow-2xs'
+                : 'text-slate-500 hover:text-slate-800'
             }`}
           >
             Edit
@@ -64,7 +63,9 @@ export default function RichTextEditor({
             type="button"
             onClick={() => setReadOnlyMode(true)}
             className={`px-2.5 py-1 rounded-lg transition cursor-pointer ${
-              readOnlyMode ? "bg-indigo-600 text-white shadow-2xs" : "text-slate-500 hover:text-slate-800"
+              readOnlyMode
+                ? 'bg-indigo-600 text-white shadow-2xs'
+                : 'text-slate-500 hover:text-slate-800'
             }`}
           >
             Preview

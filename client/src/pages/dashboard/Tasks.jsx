@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
+import { useSearchParams } from "react-router-dom";
 import MainLayout from "../../components/layout/MainLayout";
 import TaskCard from "../../components/ui/TaskCard";
 import CreateTaskModal from "../../components/ui/CreateTaskModal";
@@ -56,18 +57,56 @@ const DEFAULT_WORKSPACES = [
 ];
 
 export default function Tasks() {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const projectParam = searchParams.get('project') || '';
+  const projectIdParam = searchParams.get('projectId') || '';
+
   const [board, setBoard] = useState(EMPTY_BOARD);
   const [toast, setToast] = useState("");
   const [view, setView] = useState("kanban");
 
   const dropdownRef = useRef(null);
+  const projDropdownRef = useRef(null);
   const [workspaces, setWorkspaces] = useState(DEFAULT_WORKSPACES);
   const [selectedWorkspace, setSelectedWorkspace] = useState(DEFAULT_WORKSPACES[0]);
   const [isWsDropdownOpen, setIsWsDropdownOpen] = useState(false);
 
+  const [selectedProject, setSelectedProject] = useState(projectParam || 'all');
+  const [projectOptions, setProjectOptions] = useState([]);
+  const [isProjDropdownOpen, setIsProjDropdownOpen] = useState(false);
+
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [targetStatus, setTargetStatus] = useState("todo");
   const [editingTask, setEditingTask] = useState(null);
+
+  // Sync selectedProject state when search parameter changes
+  useEffect(() => {
+    if (projectParam) {
+      setSelectedProject(projectParam);
+    } else {
+      setSelectedProject('all');
+    }
+  }, [projectParam]);
+
+  // Fetch available projects for dropdown
+  useEffect(() => {
+    const fetchProjects = async () => {
+      try {
+        const response = await apiPrivate.get('/project');
+        const raw = response.data?.data || response.data;
+        if (Array.isArray(raw)) {
+          const list = raw.map((p) => ({
+            id: p._id || p.id,
+            name: p.name || 'Untitled Project',
+          }));
+          setProjectOptions(list);
+        }
+      } catch (err) {
+        console.error('Failed to fetch projects list for filter in Tasks:', err);
+      }
+    };
+    fetchProjects();
+  }, []);
 
   useEffect(() => {
     const fetchUserWorkspaces = async () => {
@@ -117,12 +156,22 @@ export default function Tasks() {
               id: t._id || t.id,
               _id: t._id || t.id,
               title: t.title,
-              project: t.projectName || (t.project && t.project.name) || '',
+              project: t.projectName || (t.project && t.project.name) || (typeof t.project === 'string' ? t.project : ''),
+              projectId: (t.project && (t.project._id || t.project.id)) || (typeof t.project === 'string' ? t.project : ''),
               projectColor: (t.project && t.project.color) || '#6366f1',
               workspace: t.workspaceName || (t.workspace && t.workspace.name) || '',
               workspaceId: (t.workspace && (t.workspace._id || t.workspace.id)) || t.workspace,
               status: statusKey,
               priority: t.priority || 'Medium',
+              assignees: Array.isArray(t.assignees) && t.assignees.length > 0
+                ? t.assignees
+                : [
+                    {
+                      name: t.assigneeName || (t.assignee ? `${t.assignee.firstName || ''} ${t.assignee.lastName || ''}`.trim() : 'Unassigned'),
+                      initials: t.assigneeInitials || (t.assigneeName ? t.assigneeName.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() : 'UA'),
+                      bg: 'bg-indigo-100 text-indigo-700',
+                    },
+                  ],
               assignee: {
                 name: t.assigneeName || (t.assignee ? `${t.assignee.firstName || ''} ${t.assignee.lastName || ''}`.trim() : 'Unassigned'),
                 initials: t.assigneeInitials || (t.assigneeName ? t.assigneeName.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() : 'UA'),
@@ -163,30 +212,71 @@ export default function Tasks() {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
         setIsWsDropdownOpen(false);
       }
+      if (projDropdownRef.current && !projDropdownRef.current.contains(e.target)) {
+        setIsProjDropdownOpen(false);
+      }
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  const handleSelectProject = (projName, projId = '') => {
+    setSelectedProject(projName);
+    setIsProjDropdownOpen(false);
+    const newParams = new URLSearchParams(searchParams);
+    if (projName === 'all' || !projName) {
+      newParams.delete('project');
+      newParams.delete('projectId');
+    } else {
+      newParams.set('project', projName);
+      if (projId) {
+        newParams.set('projectId', projId);
+      } else {
+        newParams.delete('projectId');
+      }
+    }
+    setSearchParams(newParams);
+  };
+
   const displayBoard = useMemo(() => {
-    if (!selectedWorkspace || selectedWorkspace.id === 'all' || selectedWorkspace.name === 'All Workspaces') {
-      return board;
+    let currentBoard = board;
+
+    // Filter by Workspace
+    if (selectedWorkspace && selectedWorkspace.id !== 'all' && selectedWorkspace.name !== 'All Workspaces') {
+      const selId = String(selectedWorkspace.id || selectedWorkspace._id || '');
+      const selName = (selectedWorkspace.name || '').toLowerCase();
+
+      const filtered = {};
+      Object.keys(currentBoard).forEach((colKey) => {
+        filtered[colKey] = (currentBoard[colKey] || []).filter((task) => {
+          if (!task.workspaceId && !task.workspace) return true;
+          const taskWsId = String(task.workspaceId || task.workspace || '');
+          const taskWsName = (task.workspaceName || task.workspace || '').toLowerCase();
+          return (selId && taskWsId === selId) || (selName && taskWsName === selName);
+        });
+      });
+      currentBoard = filtered;
     }
 
-    const selId = String(selectedWorkspace.id || selectedWorkspace._id || '');
-    const selName = (selectedWorkspace.name || '').toLowerCase();
-
-    const filtered = {};
-    Object.keys(board).forEach((colKey) => {
-      filtered[colKey] = (board[colKey] || []).filter((task) => {
-        if (!task.workspaceId && !task.workspace) return true;
-        const taskWsId = String(task.workspaceId || task.workspace || '');
-        const taskWsName = (task.workspaceName || task.workspace || '').toLowerCase();
-        return (selId && taskWsId === selId) || (selName && taskWsName === selName);
+    // Filter by Project
+    if (selectedProject && selectedProject !== 'all') {
+      const selProjNameLower = selectedProject.toLowerCase();
+      const filtered = {};
+      Object.keys(currentBoard).forEach((colKey) => {
+        filtered[colKey] = (currentBoard[colKey] || []).filter((task) => {
+          const taskProjName = (task.project || '').toLowerCase();
+          const taskProjId = String(task.projectId || task.project?._id || '');
+          if (projectIdParam && taskProjId) {
+            return taskProjId === projectIdParam || taskProjName === selProjNameLower;
+          }
+          return taskProjName === selProjNameLower;
+        });
       });
-    });
-    return filtered;
-  }, [board, selectedWorkspace]);
+      currentBoard = filtered;
+    }
+
+    return currentBoard;
+  }, [board, selectedWorkspace, selectedProject, projectIdParam]);
 
   const triggerToast = (msg) => {
     setToast(msg);
@@ -253,6 +343,7 @@ export default function Tasks() {
         onClose={() => setIsModalOpen(false)}
         onSaveTask={handleSaveTask}
         initialStatus={targetStatus}
+        initialProject={selectedProject !== 'all' ? selectedProject : ''}
         existingTask={editingTask}
         selectedWorkspace={selectedWorkspace}
         workspaces={workspaces}
@@ -260,78 +351,198 @@ export default function Tasks() {
 
       <div className="relative z-30 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 animate-fade-in-up">
         <div>
-          <div className="relative inline-block mb-2 z-40" ref={dropdownRef}>
-            <button
-              onClick={() => setIsWsDropdownOpen(!isWsDropdownOpen)}
-              className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white border border-slate-200 text-slate-800 text-xs font-bold shadow-xs hover:border-indigo-300 hover:bg-indigo-50/30 transition-all cursor-pointer group"
-            >
-              <span className="h-5 w-5 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center text-xs font-bold">
-                {selectedWorkspace?.logo || '⚡'}
-              </span>
-              <span className="text-slate-400 font-normal">Workspace:</span>
-              <span className="font-extrabold text-indigo-950 group-hover:text-indigo-600 transition-colors">
-                {selectedWorkspace?.name || 'Pulse Dev Core'}
-              </span>
-              <svg
-                className={`h-3.5 w-3.5 text-slate-400 transition-transform duration-200 ${
-                  isWsDropdownOpen ? 'rotate-180 text-indigo-600' : ''
-                }`}
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
+          <div className="flex flex-wrap items-center gap-2 mb-2 z-40">
+            {/* Workspace Dropdown */}
+            <div className="relative inline-block z-40" ref={dropdownRef}>
+              <button
+                onClick={() => setIsWsDropdownOpen(!isWsDropdownOpen)}
+                className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white border border-slate-200 text-slate-800 text-xs font-bold shadow-xs hover:border-indigo-300 hover:bg-indigo-50/30 transition-all cursor-pointer group"
               >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2.5}
-                  d="M19 9l-7 7-7-7"
-                />
-              </svg>
-            </button>
+                <span className="h-5 w-5 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center text-xs font-bold">
+                  {selectedWorkspace?.logo || '⚡'}
+                </span>
+                <span className="text-slate-400 font-normal">Workspace:</span>
+                <span className="font-extrabold text-indigo-950 group-hover:text-indigo-600 transition-colors">
+                  {selectedWorkspace?.name || 'Pulse Dev Core'}
+                </span>
+                <svg
+                  className={`h-3.5 w-3.5 text-slate-400 transition-transform duration-200 ${
+                    isWsDropdownOpen ? 'rotate-180 text-indigo-600' : ''
+                  }`}
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2.5}
+                    d="M19 9l-7 7-7-7"
+                  />
+                </svg>
+              </button>
 
-            {isWsDropdownOpen && (
-              <div className="absolute left-0 mt-2 w-72 bg-white rounded-2xl shadow-2xl border border-slate-100 p-2 z-50 animate-scale-up">
-                <div className="px-3 py-2 border-b border-slate-100 flex items-center justify-between">
-                  <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
-                    Select Workspace
-                  </span>
-                  <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-600">
-                    {workspaces.length} Spaces
-                  </span>
+              {isWsDropdownOpen && (
+                <div className="absolute left-0 mt-2 w-72 bg-white rounded-2xl shadow-2xl border border-slate-100 p-2 z-50 animate-scale-up">
+                  <div className="px-3 py-2 border-b border-slate-100 flex items-center justify-between">
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                      Select Workspace
+                    </span>
+                    <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-600">
+                      {workspaces.length} Spaces
+                    </span>
+                  </div>
+                  <div className="py-1 space-y-1 max-h-60 overflow-y-auto">
+                    {workspaces.map((ws) => (
+                      <button
+                        key={ws.id || ws._id}
+                        onClick={() => {
+                          setSelectedWorkspace(ws);
+                          setIsWsDropdownOpen(false);
+                        }}
+                        className={`w-full flex items-center justify-between p-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                          selectedWorkspace?.id === ws.id || selectedWorkspace?._id === ws._id
+                            ? 'bg-indigo-50 text-indigo-600'
+                            : 'text-slate-700 hover:bg-slate-50 hover:text-slate-900'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2.5">
+                          <span className="h-6 w-6 rounded-lg bg-slate-100 flex items-center justify-center text-xs">
+                            {ws.logo || '📁'}
+                          </span>
+                          <span>{ws.name}</span>
+                        </div>
+                        {(selectedWorkspace?.id === ws.id || selectedWorkspace?._id === ws._id) && (
+                          <span className="h-2 w-2 rounded-full bg-indigo-600" />
+                        )}
+                      </button>
+                    ))}
+                  </div>
                 </div>
-                <div className="py-1 space-y-1 max-h-60 overflow-y-auto">
-                  {workspaces.map((ws) => (
+              )}
+            </div>
+
+            {/* Project Filter Dropdown */}
+            <div className="relative inline-block z-40" ref={projDropdownRef}>
+              <button
+                onClick={() => setIsProjDropdownOpen(!isProjDropdownOpen)}
+                className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-xl border text-xs font-bold shadow-xs transition-all cursor-pointer group ${
+                  selectedProject !== 'all'
+                    ? 'bg-indigo-50/80 border-indigo-200 text-indigo-900 hover:bg-indigo-100/80'
+                    : 'bg-white border-slate-200 text-slate-800 hover:border-indigo-300 hover:bg-indigo-50/30'
+                }`}
+              >
+                <span className="h-5 w-5 rounded-lg bg-indigo-100 text-indigo-600 flex items-center justify-center text-xs font-bold">
+                  📂
+                </span>
+                <span className="text-slate-400 font-normal">Project:</span>
+                <span className="font-extrabold text-indigo-950 group-hover:text-indigo-600 transition-colors">
+                  {selectedProject === 'all' ? 'All Projects' : selectedProject}
+                </span>
+                {selectedProject !== 'all' && (
+                  <span
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleSelectProject('all');
+                    }}
+                    className="ml-1 h-4 w-4 rounded-full bg-white hover:bg-rose-100 hover:text-rose-600 text-slate-400 flex items-center justify-center text-[10px] font-bold transition shadow-xs"
+                    title="Clear project filter"
+                  >
+                    ✕
+                  </span>
+                )}
+                <svg
+                  className={`h-3.5 w-3.5 text-slate-400 transition-transform duration-200 ${
+                    isProjDropdownOpen ? 'rotate-180 text-indigo-600' : ''
+                  }`}
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2.5}
+                    d="M19 9l-7 7-7-7"
+                  />
+                </svg>
+              </button>
+
+              {isProjDropdownOpen && (
+                <div className="absolute left-0 mt-2 w-72 bg-white rounded-2xl shadow-2xl border border-slate-100 p-2 z-50 animate-scale-up">
+                  <div className="px-3 py-2 border-b border-slate-100 flex items-center justify-between">
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                      Filter by Project
+                    </span>
+                    <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-600">
+                      {projectOptions.length} Projects
+                    </span>
+                  </div>
+                  <div className="py-1 space-y-1 max-h-60 overflow-y-auto">
                     <button
-                      key={ws.id || ws._id}
-                      onClick={() => {
-                        setSelectedWorkspace(ws);
-                        setIsWsDropdownOpen(false);
-                      }}
+                      onClick={() => handleSelectProject('all')}
                       className={`w-full flex items-center justify-between p-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                        selectedWorkspace?.id === ws.id || selectedWorkspace?._id === ws._id
+                        selectedProject === 'all'
                           ? 'bg-indigo-50 text-indigo-600'
                           : 'text-slate-700 hover:bg-slate-50 hover:text-slate-900'
                       }`}
                     >
                       <div className="flex items-center gap-2.5">
                         <span className="h-6 w-6 rounded-lg bg-slate-100 flex items-center justify-center text-xs">
-                          {ws.logo || '📁'}
+                          🌐
                         </span>
-                        <span>{ws.name}</span>
+                        <span>All Projects</span>
                       </div>
-                      {(selectedWorkspace?.id === ws.id || selectedWorkspace?._id === ws._id) && (
+                      {selectedProject === 'all' && (
                         <span className="h-2 w-2 rounded-full bg-indigo-600" />
                       )}
                     </button>
-                  ))}
+                    {projectOptions.map((p) => (
+                      <button
+                        key={p.id || p.name}
+                        onClick={() => handleSelectProject(p.name, p.id)}
+                        className={`w-full flex items-center justify-between p-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                          selectedProject === p.name
+                            ? 'bg-indigo-50 text-indigo-600'
+                            : 'text-slate-700 hover:bg-slate-50 hover:text-slate-900'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2.5">
+                          <span className="h-6 w-6 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center text-xs">
+                            📂
+                          </span>
+                          <span className="truncate max-w-[170px] text-left">{p.name}</span>
+                        </div>
+                        {selectedProject === p.name && (
+                          <span className="h-2 w-2 rounded-full bg-indigo-600 flex-shrink-0" />
+                        )}
+                      </button>
+                    ))}
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
+            </div>
           </div>
 
-          <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">Project Tasks</h1>
+          <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight flex items-center gap-2 flex-wrap">
+            Project Tasks
+            {selectedProject !== 'all' && (
+              <span className="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1 rounded-xl bg-indigo-50 text-indigo-700 border border-indigo-200/80 shadow-2xs">
+                <span>Project:</span>
+                <span className="text-indigo-900">{selectedProject}</span>
+                <button
+                  onClick={() => handleSelectProject('all')}
+                  className="ml-1 hover:text-rose-600 transition"
+                  title="Clear project filter"
+                >
+                  ✕
+                </button>
+              </span>
+            )}
+          </h1>
           <p className="text-sm text-slate-500 mt-1">
-            {doneTasks} of {totalTasks} tasks completed ·{" "}
+            {doneTasks} of {totalTasks} tasks completed
+            {selectedProject !== 'all' ? ` in ${selectedProject}` : ''} ·{" "}
             <span className="font-semibold text-indigo-600">{(displayBoard.inProgress || []).length} in progress</span>
           </p>
         </div>
@@ -473,13 +684,34 @@ export default function Tasks() {
                   {col.label}
                 </span>
                 <span className="text-xs text-slate-400 hidden sm:block">{task.project}</span>
-                <div
-                  className={`h-6 w-6 rounded-full flex items-center justify-center text-[9px] font-bold flex-shrink-0 ${
-                    task.assignee?.bg || "bg-indigo-100 text-indigo-700"
-                  }`}
-                >
-                  {task.assignee?.initials || "PM"}
-                </div>
+                {(() => {
+                  const list =
+                    Array.isArray(task.assignees) && task.assignees.length > 0
+                      ? task.assignees
+                      : task.assignee
+                        ? [task.assignee]
+                        : [];
+                  return (
+                    <div className="flex items-center -space-x-1.5 overflow-hidden flex-shrink-0">
+                      {list.slice(0, 3).map((a, idx) => (
+                        <div
+                          key={a.id || a.name || idx}
+                          title={a.name || 'Assignee'}
+                          className={`h-6 w-6 rounded-full ring-2 ring-white flex items-center justify-center text-[9px] font-bold flex-shrink-0 ${
+                            a.bg || 'bg-indigo-100 text-indigo-700'
+                          }`}
+                        >
+                          {a.initials || '??'}
+                        </div>
+                      ))}
+                      {list.length > 3 && (
+                        <div className="h-6 w-6 rounded-full ring-2 ring-white bg-slate-200 text-slate-700 flex items-center justify-center text-[9px] font-bold flex-shrink-0">
+                          +{list.length - 3}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
               </div>
             ))
           )}

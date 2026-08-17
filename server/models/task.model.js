@@ -42,6 +42,17 @@ const taskSchema = new mongoose.Schema(
       enum: ['Low', 'Medium', 'High', 'Critical'],
       default: 'Medium',
     },
+    assignees: [
+      {
+        userId: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: 'User',
+        },
+        name: { type: String, default: '' },
+        initials: { type: String, default: '' },
+        avatar: { type: String, default: '' },
+      },
+    ],
     assignee: {
       type: mongoose.Schema.Types.Mixed,
       required: false,

@@ -11,6 +11,7 @@ const {
   createTaskSchema,
   updateTaskSchema,
 } = require('../validations/task.validation.js');
+const upload = require('../middleware/upload.middleware.js');
 
 const router = express.Router();
 
@@ -20,5 +21,11 @@ router.get('/', getTasks);
 router.post('/', validate(createTaskSchema), createTask);
 router.put('/:id', validate(updateTaskSchema), updateTask);
 router.delete('/:id', deleteTask);
+router.post('/upload', upload.array('files', 10), (req, res) => {
+  res.json({
+    success: true,
+    files: req.files,
+  });
+});
 
 module.exports = router;

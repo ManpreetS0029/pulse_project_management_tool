@@ -1,4 +1,5 @@
 import React from "react";
+import { useNavigate } from "react-router-dom";
 
 const priorityConfig = {
   Critical: { label: "Critical", color: "#ef4444", bg: "rgba(239,68,68,0.1)", dot: "bg-red-500" },
@@ -23,7 +24,8 @@ const colorMap = {
   amber:   { bar: "linear-gradient(90deg,#f59e0b,#fbbf24)", icon: "rgba(245,158,11,0.12)", iconText: "#f59e0b" },
 };
 
-export default function ProjectCard({ project }) {
+export default function ProjectCard({ project, onClick }) {
+  const navigate = useNavigate();
   const { name, description, status, priority, progress, dueDate, tasksTotal, tasksCompleted, color } = project;
   const colors = colorMap[color] || colorMap.indigo;
   const pCfg = priorityConfig[priority] || priorityConfig.Medium;
@@ -36,8 +38,20 @@ export default function ProjectCard({ project }) {
   const isOverdue = daysLeft !== null && daysLeft < 0;
   const isDueSoon = daysLeft !== null && daysLeft >= 0 && daysLeft <= 3;
 
+  const handleCardClick = (e) => {
+    if (onClick) {
+      onClick(e);
+    } else {
+      const projId = project.id || project._id || '';
+      navigate(`/dashboard/tasks?project=${encodeURIComponent(name)}&projectId=${encodeURIComponent(projId)}`);
+    }
+  };
+
   return (
-    <div className="group bg-white border border-slate-100 rounded-2xl p-5 shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-250 cursor-pointer flex flex-col gap-4 animate-fade-in-up relative overflow-hidden">
+    <div
+      onClick={handleCardClick}
+      className="group bg-white border border-slate-100 rounded-2xl p-5 shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-250 cursor-pointer flex flex-col gap-4 animate-fade-in-up relative overflow-hidden"
+    >
       {/* Top-right glow */}
       <div
         className="absolute -top-8 -right-8 h-24 w-24 rounded-full opacity-[0.06] group-hover:opacity-[0.1] transition-opacity"

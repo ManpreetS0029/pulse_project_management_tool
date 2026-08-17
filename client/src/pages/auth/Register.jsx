@@ -226,37 +226,64 @@ export default function Register() {
           </div>
         </div>
 
-        <div className="space-y-1.5">
-          <label
-            htmlFor="email"
-            className="block text-sm font-semibold text-slate-700"
-          >
-            Email address
-            <span className="ml-0.5 text-rose-500">*</span>
-          </label>
-          <input
-            id="email"
-            type="email"
-            placeholder="you@example.com"
-            className={`block w-full px-4 py-2.5 bg-slate-50 border ${
-              errors.email
-                ? 'border-rose-300 focus:ring-rose-500 focus:border-rose-500'
-                : 'border-slate-200 focus:ring-indigo-500 focus:border-indigo-500'
-            } rounded-lg text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-offset-0 focus:bg-white transition duration-150`}
-            {...register('email', { required: 'Email is required' })}
-          />
-          {errors.email && (
-            <p className="text-xs text-rose-600 flex items-center gap-1 mt-1">
-              <svg className="h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
-                <path
-                  fillRule="evenodd"
-                  d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z"
-                  clipRule="evenodd"
-                />
-              </svg>
-              {errors.email.message}
-            </p>
-          )}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="space-y-1.5">
+            <label
+              htmlFor="email"
+              className="block text-sm font-semibold text-slate-700"
+            >
+              Email address
+              <span className="ml-0.5 text-rose-500">*</span>
+            </label>
+            <input
+              id="email"
+              type="email"
+              placeholder="you@example.com"
+              className={`block w-full px-4 py-2.5 bg-slate-50 border ${
+                errors.email
+                  ? 'border-rose-300 focus:ring-rose-500 focus:border-rose-500'
+                  : 'border-slate-200 focus:ring-indigo-500 focus:border-indigo-500'
+              } rounded-lg text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-offset-0 focus:bg-white transition duration-150`}
+              {...register('email', { required: 'Email is required' })}
+            />
+            {errors.email && (
+              <p className="text-xs text-rose-600 flex items-center gap-1 mt-1">
+                <svg className="h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
+                  <path
+                    fillRule="evenodd"
+                    d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+                {errors.email.message}
+              </p>
+            )}
+          </div>
+
+          <div className="space-y-1.5">
+            <label
+              htmlFor="department"
+              className="block text-sm font-semibold text-slate-700"
+            >
+              Department
+            </label>
+            <select
+              id="department"
+              className="block w-full px-4 py-2.5 bg-slate-50 border border-slate-200 focus:ring-indigo-500 focus:border-indigo-500 rounded-lg text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-offset-0 focus:bg-white transition duration-150"
+              {...register('department')}
+            >
+              <option value="">Select Department (Optional)</option>
+              <option value="Engineering">Engineering</option>
+              <option value="Product">Product</option>
+              <option value="Design">Design</option>
+              <option value="Marketing">Marketing</option>
+              <option value="Sales">Sales</option>
+              <option value="Operations">Operations</option>
+              <option value="QA / Testing">QA / Testing</option>
+              <option value="Human Resources">Human Resources</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
         </div>
 
         <div className="space-y-2">

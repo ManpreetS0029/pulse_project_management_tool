@@ -31,6 +31,7 @@ const createTask = async (data, createdBy) => {
     description: description || notes || '',
     status: status || 'todo',
     priority: priority || 'Medium',
+    assignees: data.assignees || [],
     assignee: assignee || undefined,
     assigneeName: assigneeName || '',
     assigneeInitials: assigneeInitials || '',

@@ -482,7 +482,17 @@ export default function Projects() {
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5 stagger mt-6">
           {filtered.map((project) => (
-            <ProjectCard key={project.id} project={project} />
+            <ProjectCard
+              key={project.id}
+              project={project}
+              onClick={() =>
+                navigate(
+                  `/dashboard/tasks?project=${encodeURIComponent(
+                    project.name,
+                  )}&projectId=${encodeURIComponent(project.id || project._id || '')}`,
+                )
+              }
+            />
           ))}
         </div>
       )}

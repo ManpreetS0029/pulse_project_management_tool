@@ -43,6 +43,11 @@ const UserSchema = new mongoose.Schema(
       required: true,
       minLength: 8,
     },
+    department: {
+      type: String,
+      trim: true,
+      default: '',
+    },
     role: {
       type: String,
       enum: ['ADMIN', 'PROJECT_MANAGER', 'MEMBER'],

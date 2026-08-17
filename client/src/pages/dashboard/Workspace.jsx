@@ -63,10 +63,6 @@ export default function Workspace() {
   const [isEditMemberOpen, setIsEditMemberOpen] = useState(false);
   const [editingMember, setEditingMember] = useState(null);
   const [memberToDelete, setMemberToDelete] = useState(null);
-  const [inviteName, setInviteName] = useState('');
-  const [inviteEmail, setInviteEmail] = useState('');
-  const [inviteDepartment, setInviteDepartment] = useState('');
-  const [inviteRole, setInviteRole] = useState('Member');
   const [editName, setEditName] = useState('');
   const [editEmail, setEditEmail] = useState('');
   const [editDepartment, setEditDepartment] = useState('');

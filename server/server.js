@@ -4,6 +4,8 @@ const cookieParser = require('cookie-parser');
 const dotenv = require('dotenv');
 const connectDB = require('./config/db.js');
 
+const path = require('path');
+
 dotenv.config();
 
 // Connect to Database
@@ -26,6 +28,7 @@ app.use(
 );
 app.use(express.json());
 app.use(cookieParser());
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Routes
 app.use('/api/auth', authRoutes);
@@ -42,4 +45,3 @@ const PORT = 3000;
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
 });
-// Nodemon restart trigger - v2

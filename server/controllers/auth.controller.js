@@ -67,7 +67,7 @@ const login = async (req, res) => {
 };
 
 const register = async (req, res) => {
-  const { username, firstName, lastName, email, password, phone, role } =
+  const { username, firstName, lastName, email, password, phone, role, department } =
     req.body || {};
 
   if (!username || !firstName || !lastName || !email || !password || !phone) {
@@ -101,6 +101,7 @@ const register = async (req, res) => {
       lastName,
       email,
       phone,
+      department: department ? department.trim() : '',
       role,
       password: hashedPassword,
     });

@@ -1,25 +1,57 @@
-import React from "react";
+import React from 'react';
 
 const priorityConfig = {
-  Critical: { label: "Critical", color: "#ef4444", bg: "rgba(239,68,68,0.1)", border: "#fecaca" },
-  High:     { label: "High",     color: "#f97316", bg: "rgba(249,115,22,0.1)", border: "#fed7aa" },
-  Medium:   { label: "Medium",   color: "#eab308", bg: "rgba(234,179,8,0.1)",  border: "#fef08a" },
-  Low:      { label: "Low",      color: "#22c55e", bg: "rgba(34,197,94,0.1)",  border: "#bbf7d0" },
+  Critical: {
+    label: 'Critical',
+    color: '#ef4444',
+    bg: 'rgba(239,68,68,0.1)',
+    border: '#fecaca',
+  },
+  High: {
+    label: 'High',
+    color: '#f97316',
+    bg: 'rgba(249,115,22,0.1)',
+    border: '#fed7aa',
+  },
+  Medium: {
+    label: 'Medium',
+    color: '#eab308',
+    bg: 'rgba(234,179,8,0.1)',
+    border: '#fef08a',
+  },
+  Low: {
+    label: 'Low',
+    color: '#22c55e',
+    bg: 'rgba(34,197,94,0.1)',
+    border: '#bbf7d0',
+  },
 };
 
 const projectColorMap = {
-  indigo:  "#6366f1",
-  violet:  "#8b5cf6",
-  sky:     "#0ea5e9",
-  emerald: "#10b981",
-  pink:    "#ec4899",
-  amber:   "#f59e0b",
+  indigo: '#6366f1',
+  violet: '#8b5cf6',
+  sky: '#0ea5e9',
+  emerald: '#10b981',
+  pink: '#ec4899',
+  amber: '#f59e0b',
 };
 
 export default function TaskCard({ task, onClick }) {
-  const { id, title, priority, project, projectColor, dueDate, assignee, tags = [], files = [], commentsCount = 0, subtasks = [] } = task;
+  const {
+    id,
+    title,
+    priority,
+    project,
+    projectColor,
+    dueDate,
+    assignee,
+    tags = [],
+    files = [],
+    commentsCount = 0,
+    subtasks = [],
+  } = task;
   const pCfg = priorityConfig[priority] || priorityConfig.Medium;
-  const projColor = projectColorMap[projectColor] || "#6366f1";
+  const projColor = projectColorMap[projectColor] || '#6366f1';
 
   const today = new Date();
   const due = new Date(dueDate);
@@ -27,7 +59,9 @@ export default function TaskCard({ task, onClick }) {
   const isOverdue = daysLeft < 0;
   const isDueSoon = daysLeft >= 0 && daysLeft <= 1;
 
-  const filesLength = Array.isArray(files) ? files.length : (task.attachmentsCount || 0);
+  const filesLength = Array.isArray(files)
+    ? files.length
+    : task.attachmentsCount || 0;
 
   return (
     <div
@@ -42,7 +76,6 @@ export default function TaskCard({ task, onClick }) {
 
       {/* Task ID + Priority */}
       <div className="flex items-center justify-between mb-2">
-        <span className="text-[10px] font-bold text-slate-400 tracking-wider">{id}</span>
         <span
           className="text-[10px] font-bold px-1.5 py-0.5 rounded-full"
           style={{ background: pCfg.bg, color: pCfg.color }}
@@ -74,18 +107,27 @@ export default function TaskCard({ task, onClick }) {
       {(filesLength > 0 || commentsCount > 0 || subtasks.length > 0) && (
         <div className="flex items-center gap-3 mb-3 text-[11px] font-semibold text-slate-400">
           {filesLength > 0 && (
-            <span className="flex items-center gap-1 text-slate-500" title="Attachments">
+            <span
+              className="flex items-center gap-1 text-slate-500"
+              title="Attachments"
+            >
               📎 {filesLength}
             </span>
           )}
           {commentsCount > 0 && (
-            <span className="flex items-center gap-1 text-slate-500" title="Comments">
+            <span
+              className="flex items-center gap-1 text-slate-500"
+              title="Comments"
+            >
               💬 {commentsCount}
             </span>
           )}
           {subtasks.length > 0 && (
-            <span className="flex items-center gap-1 text-slate-500" title="Subtasks">
-              ☑ {subtasks.filter(s => s.completed).length}/{subtasks.length}
+            <span
+              className="flex items-center gap-1 text-slate-500"
+              title="Subtasks"
+            >
+              ☑ {subtasks.filter((s) => s.completed).length}/{subtasks.length}
             </span>
           )}
         </div>
@@ -109,22 +151,59 @@ export default function TaskCard({ task, onClick }) {
           {/* Due date */}
           <span
             className={`flex items-center gap-0.5 text-[10px] font-semibold ${
-              isOverdue ? "text-rose-500" : isDueSoon ? "text-amber-500" : "text-slate-400"
+              isOverdue
+                ? 'text-rose-500'
+                : isDueSoon
+                  ? 'text-amber-500'
+                  : 'text-slate-400'
             }`}
           >
-            <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            <svg
+              className="h-3 w-3"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+              />
             </svg>
-            {isOverdue ? "Overdue" : daysLeft === 0 ? "Today" : `${daysLeft}d`}
+            {isOverdue ? 'Overdue' : daysLeft === 0 ? 'Today' : `${daysLeft}d`}
           </span>
 
-          {/* Assignee */}
-          <div
-            title={assignee.name}
-            className={`h-6 w-6 rounded-full flex items-center justify-center text-[9px] font-bold flex-shrink-0 ${assignee.bg}`}
-          >
-            {assignee.initials}
-          </div>
+          {/* Assignees */}
+          {(() => {
+            const list =
+              Array.isArray(task.assignees) && task.assignees.length > 0
+                ? task.assignees
+                : assignee
+                  ? [assignee]
+                  : [];
+            if (list.length === 0) return null;
+            return (
+              <div className="flex items-center -space-x-1.5 overflow-hidden flex-shrink-0">
+                {list.slice(0, 3).map((a, idx) => (
+                  <div
+                    key={a.id || a.name || idx}
+                    title={a.name || 'Assignee'}
+                    className={`h-6 w-6 rounded-full ring-2 ring-white flex items-center justify-center text-[9px] font-bold flex-shrink-0 ${
+                      a.bg || 'bg-slate-100 text-slate-700'
+                    }`}
+                  >
+                    {a.initials || '??'}
+                  </div>
+                ))}
+                {list.length > 3 && (
+                  <div className="h-6 w-6 rounded-full ring-2 ring-white bg-slate-200 text-slate-700 flex items-center justify-center text-[9px] font-bold flex-shrink-0">
+                    +{list.length - 3}
+                  </div>
+                )}
+              </div>
+            );
+          })()}
         </div>
       </div>
     </div>
