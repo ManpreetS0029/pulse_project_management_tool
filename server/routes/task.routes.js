@@ -2,6 +2,7 @@ const express = require('express');
 const {
   createTask,
   getTasks,
+  getTasksByProjectId,
   updateTask,
   deleteTask,
 } = require('../controllers/task.controller.js');
@@ -18,6 +19,7 @@ const router = express.Router();
 router.use(protect);
 
 router.get('/', getTasks);
+router.get('/:projectId', getTasksByProjectId);
 router.post('/', validate(createTaskSchema), createTask);
 router.put('/:id', validate(updateTaskSchema), updateTask);
 router.delete('/:id', deleteTask);

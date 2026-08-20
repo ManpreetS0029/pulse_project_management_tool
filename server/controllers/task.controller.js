@@ -1,6 +1,7 @@
 const {
   createTask: createTaskService,
   getTasks: getTasksService,
+  getTasksByProjectId: getTasksByProjectIdService,
   updateTask: updateTaskService,
   deleteTask: deleteTaskService,
 } = require('../services/task.service.js');
@@ -34,6 +35,24 @@ const getTasks = async (req, res) => {
     });
   } catch (error) {
     console.error('Error in getTasks controller:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Failed to fetch tasks',
+    });
+  }
+};
+
+const getTasksByProjectId = async (req, res) => {
+  try {
+    const { projectId } = req.params;
+    const tasks = await getTasksByProjectIdService(projectId);
+
+    res.status(200).json({
+      success: true,
+      data: tasks,
+    });
+  } catch (error) {
+    console.error('Error in getTasksByProjectId controller:', error);
     res.status(500).json({
       success: false,
       message: error.message || 'Failed to fetch tasks',
@@ -94,6 +113,7 @@ const deleteTask = async (req, res) => {
 module.exports = {
   createTask,
   getTasks,
+  getTasksByProjectId,
   updateTask,
   deleteTask,
 };

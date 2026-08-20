@@ -23,8 +23,8 @@ export default function Login() {
     setErrorMsg('');
     try {
       const response = await apiPrivate.post('/auth/login', data);
-      const { accessToken, username } = response.data;
-      setAuth({ token: accessToken, username });
+      const { accessToken, username, role } = response.data;
+      setAuth({ token: accessToken, username, role });
       navigate('/dashboard');
     } catch (err) {
       if (!err?.response) {

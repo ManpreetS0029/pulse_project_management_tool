@@ -1,4 +1,5 @@
 import React from 'react';
+import { Paperclip, MessageSquare, CheckSquare, Calendar } from 'lucide-react';
 
 const priorityConfig = {
   Critical: {
@@ -54,10 +55,10 @@ export default function TaskCard({ task, onClick }) {
   const projColor = projectColorMap[projectColor] || '#6366f1';
 
   const today = new Date();
-  const due = new Date(dueDate);
-  const daysLeft = Math.ceil((due - today) / (1000 * 60 * 60 * 24));
-  const isOverdue = daysLeft < 0;
-  const isDueSoon = daysLeft >= 0 && daysLeft <= 1;
+  const due = dueDate ? new Date(dueDate) : null;
+  const daysLeft = due ? Math.ceil((due - today) / (1000 * 60 * 60 * 24)) : null;
+  const isOverdue = due && daysLeft < 0;
+  const isDueSoon = due && daysLeft >= 0 && daysLeft <= 1;
 
   const filesLength = Array.isArray(files)
     ? files.length
@@ -111,7 +112,8 @@ export default function TaskCard({ task, onClick }) {
               className="flex items-center gap-1 text-slate-500"
               title="Attachments"
             >
-              📎 {filesLength}
+              <Paperclip className="h-3 w-3" />
+              <span>{filesLength}</span>
             </span>
           )}
           {commentsCount > 0 && (
@@ -119,7 +121,8 @@ export default function TaskCard({ task, onClick }) {
               className="flex items-center gap-1 text-slate-500"
               title="Comments"
             >
-              💬 {commentsCount}
+              <MessageSquare className="h-3 w-3" />
+              <span>{commentsCount}</span>
             </span>
           )}
           {subtasks.length > 0 && (
@@ -127,7 +130,10 @@ export default function TaskCard({ task, onClick }) {
               className="flex items-center gap-1 text-slate-500"
               title="Subtasks"
             >
-              ☑ {subtasks.filter((s) => s.completed).length}/{subtasks.length}
+              <CheckSquare className="h-3 w-3" />
+              <span>
+                {subtasks.filter((s) => s.completed).length}/{subtasks.length}
+              </span>
             </span>
           )}
         </div>
@@ -149,30 +155,20 @@ export default function TaskCard({ task, onClick }) {
 
         <div className="flex items-center gap-2">
           {/* Due date */}
-          <span
-            className={`flex items-center gap-0.5 text-[10px] font-semibold ${
-              isOverdue
-                ? 'text-rose-500'
-                : isDueSoon
-                  ? 'text-amber-500'
-                  : 'text-slate-400'
-            }`}
-          >
-            <svg
-              className="h-3 w-3"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
+          {dueDate && (
+            <span
+              className={`flex items-center gap-1 text-[10px] font-semibold ${
+                isOverdue
+                  ? 'text-rose-500'
+                  : isDueSoon
+                    ? 'text-amber-500'
+                    : 'text-slate-400'
+              }`}
             >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-              />
-            </svg>
-            {isOverdue ? 'Overdue' : daysLeft === 0 ? 'Today' : `${daysLeft}d`}
-          </span>
+              <Calendar className="h-3 w-3" />
+              {isOverdue ? 'Overdue' : daysLeft === 0 ? 'Today' : `${daysLeft}d`}
+            </span>
+          )}
 
           {/* Assignees */}
           {(() => {

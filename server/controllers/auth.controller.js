@@ -60,15 +60,23 @@ const login = async (req, res) => {
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
 
-    res.json({ accessToken, username: user.username });
+    res.json({ accessToken, username: user.username, role: user.role });
   } catch (err) {
     res.status(500).json({ message: 'Something went wrong' });
   }
 };
 
 const register = async (req, res) => {
-  const { username, firstName, lastName, email, password, phone, role, department } =
-    req.body || {};
+  const {
+    username,
+    firstName,
+    lastName,
+    email,
+    password,
+    phone,
+    role,
+    department,
+  } = req.body || {};
 
   if (!username || !firstName || !lastName || !email || !password || !phone) {
     return res

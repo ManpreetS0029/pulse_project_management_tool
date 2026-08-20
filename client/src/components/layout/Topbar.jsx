@@ -212,7 +212,7 @@ export default function Topbar({ onToggleSidebar }) {
                       {username}
                     </p>
                     <p className="text-xs text-slate-400 truncate">
-                      Administrator
+                      {auth?.role || 'Member'}
                     </p>
                   </div>
                 </div>

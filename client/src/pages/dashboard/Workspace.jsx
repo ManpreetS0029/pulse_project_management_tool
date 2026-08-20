@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
+import { Crown, Folder, AlertTriangle, Trash2 } from 'lucide-react';
 import MainLayout from '../../components/layout/MainLayout';
 import ProjectCard from '../../components/ui/ProjectCard';
+import CreateProjectModal from '../../components/ui/CreateProjectModal';
 
 import { useForm } from 'react-hook-form';
 import { apiPrivate } from '../../api/axios';
@@ -67,11 +69,75 @@ export default function Workspace() {
   const [editEmail, setEditEmail] = useState('');
   const [editDepartment, setEditDepartment] = useState('');
   const [editRole, setEditRole] = useState('Member');
+  const [editingProject, setEditingProject] = useState(null);
+  const [projectToDelete, setProjectToDelete] = useState(null);
+  const [isDeletingProject, setIsDeletingProject] = useState(false);
+  const [isProjectModalOpen, setIsProjectModalOpen] = useState(false);
   const [toast, setToast] = useState('');
 
   const triggerToast = (msg) => {
     setToast(msg);
     setTimeout(() => setToast(''), 3500);
+  };
+
+  const handleOpenEditProject = (proj) => {
+    setEditingProject(proj);
+    setIsProjectModalOpen(true);
+  };
+
+  const handleOpenDeleteProject = (proj) => {
+    setProjectToDelete(proj);
+  };
+
+  const handleConfirmDeleteProject = async () => {
+    if (!projectToDelete) return;
+    setIsDeletingProject(true);
+    const targetId = projectToDelete._id || projectToDelete.id;
+
+    try {
+      await apiPrivate.delete(`/project/${targetId}`);
+      setWorkspaceProjects((prev) =>
+        prev.filter(
+          (p) =>
+            p.id !== targetId &&
+            p._id !== targetId &&
+            p.id !== projectToDelete.id &&
+            p._id !== projectToDelete._id,
+        ),
+      );
+      triggerToast(`Project "${projectToDelete.name}" deleted successfully!`);
+    } catch (err) {
+      console.error('Failed to delete project:', err);
+      setWorkspaceProjects((prev) =>
+        prev.filter(
+          (p) =>
+            p.id !== targetId &&
+            p._id !== targetId &&
+            p.id !== projectToDelete.id &&
+            p._id !== projectToDelete._id,
+        ),
+      );
+      triggerToast(`Project "${projectToDelete.name}" deleted`);
+    } finally {
+      setIsDeletingProject(false);
+      setProjectToDelete(null);
+    }
+  };
+
+  const handleSaveProject = (savedProj, isEdit) => {
+    const normalized = normalizeProject(savedProj);
+    if (isEdit || editingProject) {
+      setWorkspaceProjects((prev) =>
+        prev.map((p) =>
+          p.id === normalized.id || (normalized._id && p._id === normalized._id)
+            ? { ...p, ...normalized }
+            : p,
+        ),
+      );
+      triggerToast(`Project "${savedProj.name}" updated successfully!`);
+    }
+    setIsProjectModalOpen(false);
+    setEditingProject(null);
   };
 
   const { auth } = useAuth();
@@ -443,7 +509,6 @@ export default function Workspace() {
 
   return (
     <MainLayout>
-      {/* Toast Notification */}
       {toast && (
         <div
           className="fixed bottom-6 right-6 z-50 flex items-center gap-3 px-5 py-3.5 rounded-2xl shadow-2xl text-white text-sm font-semibold animate-bounce"
@@ -457,7 +522,6 @@ export default function Workspace() {
         </div>
       )}
 
-      {/* HEADER & WORKSPACE SWITCHER */}
       <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200/80 relative z-20">
         <div className="absolute inset-0 rounded-2xl overflow-hidden pointer-events-none">
           <div
@@ -470,7 +534,6 @@ export default function Workspace() {
         </div>
 
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 relative z-10">
-          {/* Workspace Info & Switcher Button */}
           <div className="flex items-center gap-4">
             <div
               className={`h-16 w-16 rounded-2xl flex items-center justify-center text-2xl shadow-lg bg-gradient-to-br ${activeWorkspace.color} text-white font-extrabold flex-shrink-0`}
@@ -508,7 +571,6 @@ export default function Workspace() {
                     </svg>
                   </button>
 
-                  {/* Dropdown Menu */}
                   {isWorkspaceDropdownOpen && (
                     <>
                       <div
@@ -612,7 +674,6 @@ export default function Workspace() {
             </div>
           </div>
 
-          {/* Action Buttons */}
           <div className="flex items-center gap-3">
             <button
               id="invite-member-header-btn"
@@ -661,7 +722,6 @@ export default function Workspace() {
           </div>
         </div>
 
-        {/* Workspace Quick Stats Row */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-6 pt-5 border-t border-slate-100">
           <div>
             <span className="text-[11px] font-bold uppercase text-slate-400">
@@ -690,7 +750,6 @@ export default function Workspace() {
         </div>
       </div>
 
-      {/* NAVIGATION TABS */}
       <div className="flex items-center border-b border-slate-200 space-x-8">
         {[
           {
@@ -718,12 +777,8 @@ export default function Workspace() {
         ))}
       </div>
 
-      {/* TAB CONTENT */}
-
-      {/* MEMBERS & ROLES TAB */}
       {activeTab === 'members' && (
         <div className="space-y-5 animate-fade-in">
-          {/* Controls: Search + Role Filters */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-4 rounded-2xl border border-slate-200/80 shadow-sm">
             <div className="relative flex-1 max-w-md">
               <svg
@@ -770,7 +825,6 @@ export default function Workspace() {
             </div>
           </div>
 
-          {/* Members Table */}
           <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse">
@@ -787,7 +841,6 @@ export default function Workspace() {
                 <tbody className="divide-y divide-slate-100 text-sm">
                   {filteredMembers.map((m) => (
                     <tr key={m.id} className="hover:bg-slate-50/80 transition">
-                      {/* Name & Avatar */}
                       <td className="py-4 px-5">
                         <div className="flex items-center gap-3">
                           <div
@@ -806,16 +859,15 @@ export default function Workspace() {
                         </div>
                       </td>
 
-                      {/* Department */}
                       <td className="py-4 px-5 text-slate-600 font-medium">
                         {m.department}
                       </td>
 
-                      {/* Role Selector Badge */}
                       <td className="py-4 px-5">
                         {normalizeRole(m.role) === 'Owner' ? (
-                          <span className="inline-flex items-center gap-1 text-xs font-bold px-3 py-1 rounded-full border bg-indigo-100 text-indigo-700 border-indigo-200">
-                            👑 Owner
+                          <span className="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1 rounded-full border bg-indigo-100 text-indigo-700 border-indigo-200">
+                            <Crown className="h-3.5 w-3.5 text-amber-500" />
+                            <span>Owner</span>
                           </span>
                         ) : (
                           <select
@@ -836,12 +888,10 @@ export default function Workspace() {
                         )}
                       </td>
 
-                      {/* Joined Date */}
                       <td className="py-4 px-5 text-xs text-slate-500 font-medium">
                         {m.joinedDate}
                       </td>
 
-                      {/* Status */}
                       <td className="py-4 px-5">
                         <span
                           className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full ${
@@ -854,7 +904,6 @@ export default function Workspace() {
                         </span>
                       </td>
 
-                      {/* Actions */}
                       <td className="py-4 px-5 text-right">
                         {m.role !== 'Owner' && (
                           <div className="flex items-center justify-end gap-1">
@@ -908,13 +957,12 @@ export default function Workspace() {
         </div>
       )}
 
-      {/* PROJECTS TAB */}
       {activeTab === 'projects' && (
         <div className="space-y-6 animate-fade-in">
           {workspaceProjects.length === 0 ? (
             <div className="bg-white rounded-2xl p-12 text-center border border-slate-200/80 shadow-sm">
-              <div className="h-16 w-16 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center mx-auto mb-4 text-2xl font-bold">
-                📁
+              <div className="h-16 w-16 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                <Folder className="h-8 w-8 text-indigo-600" />
               </div>
               <h3 className="text-base font-bold text-slate-800">
                 No projects in this workspace
@@ -927,14 +975,18 @@ export default function Workspace() {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
               {workspaceProjects.map((p) => (
-                <ProjectCard key={p.id || p._id} project={p} />
+                <ProjectCard
+                  key={p.id || p._id}
+                  project={p}
+                  onEdit={handleOpenEditProject}
+                  onDelete={handleOpenDeleteProject}
+                />
               ))}
             </div>
           )}
         </div>
       )}
 
-      {/* SETTINGS TAB */}
       {activeTab === 'settings' && (
         <div className="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-sm space-y-6 animate-fade-in max-w-3xl">
           <div>
@@ -997,7 +1049,6 @@ export default function Workspace() {
             </div>
           </form>
 
-          {/* Danger Zone */}
           <div className="pt-6 border-t border-slate-200/80 space-y-3">
             <h4 className="text-sm font-extrabold text-rose-600">
               Danger Zone
@@ -1023,7 +1074,6 @@ export default function Workspace() {
         </div>
       )}
 
-      {/* CREATE WORKSPACE MODAL */}
       {isCreateWorkspaceOpen && (
         <>
           <div
@@ -1151,7 +1201,6 @@ export default function Workspace() {
         </>
       )}
 
-      {/* INVITE MEMBER MODAL */}
       {isInviteMemberOpen && (
         <>
           <div
@@ -1328,7 +1377,6 @@ export default function Workspace() {
         </>
       )}
 
-      {/* EDIT MEMBER MODAL */}
       {isEditMemberOpen && (
         <>
           <div
@@ -1455,7 +1503,6 @@ export default function Workspace() {
         </>
       )}
 
-      {/* DELETE WORKSPACE CONFIRMATION MODAL */}
       {isDeleteWorkspaceOpen && (
         <>
           <div
@@ -1463,40 +1510,28 @@ export default function Workspace() {
             onClick={() => setIsDeleteWorkspaceOpen(false)}
           />
           <div className="fixed inset-0 z-[1000] overflow-y-auto flex items-center justify-center p-4 pointer-events-none">
-            <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-100 animate-in fade-in zoom-in-95 pointer-events-auto">
-              <div className="flex items-center gap-4 mb-4">
-                <div className="h-12 w-12 rounded-2xl bg-rose-100 text-rose-600 flex items-center justify-center flex-shrink-0">
-                  <svg
-                    className="h-6 w-6"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
-                    />
-                  </svg>
+            <div className="bg-white rounded-3xl p-6 md:p-8 max-w-md w-full shadow-2xl border border-rose-100 animate-scale-up pointer-events-auto">
+              <div className="flex items-center gap-3.5 mb-5">
+                <div className="h-12 w-12 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center flex-shrink-0">
+                  <AlertTriangle className="h-6 w-6 text-rose-600" />
                 </div>
                 <div>
                   <h3 className="text-lg font-black text-slate-900">
                     Delete Workspace
                   </h3>
                   <p className="text-xs text-slate-500">
-                    This action is irreversible.
+                    This action is permanent
                   </p>
                 </div>
               </div>
 
               <p className="text-sm text-slate-600 mb-6 leading-relaxed">
-                Are you sure you want to delete{' '}
+                Are you completely sure you want to delete{' '}
                 <span className="font-bold text-slate-900">
-                  "{activeWorkspace?.name}"
+                  {activeWorkspace?.name}
                 </span>
-                ? All associated projects, tasks, and settings will be
-                permanently removed.
+                ? All associated projects, task boards, and member permissions
+                will be removed immediately.
               </p>
 
               <div className="flex items-center justify-end gap-3">
@@ -1510,7 +1545,7 @@ export default function Workspace() {
                 <button
                   id="confirm-delete-workspace-btn"
                   type="button"
-                  onClick={deleteWorkspace}
+                  onClick={handleConfirmDeleteWorkspace}
                   className="px-5 py-2.5 rounded-xl text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 shadow-md cursor-pointer"
                 >
                   Delete Workspace
@@ -1521,7 +1556,75 @@ export default function Workspace() {
         </>
       )}
 
-      {/* REMOVE MEMBER CONFIRMATION MODAL */}
+      <CreateProjectModal
+        isOpen={isProjectModalOpen}
+        onClose={() => {
+          setIsProjectModalOpen(false);
+          setEditingProject(null);
+        }}
+        onSave={handleSaveProject}
+        onDelete={handleOpenDeleteProject}
+        defaultWorkspace={activeWorkspace?.name || ''}
+        workspaceList={workspaces.map((w) => w.name)}
+        existingProject={editingProject}
+      />
+
+      {projectToDelete && (
+        <>
+          <div
+            className="fixed inset-0 w-screen h-screen min-h-screen bg-slate-950/75 backdrop-blur-md z-[999] animate-fade-in cursor-pointer"
+            onClick={() => setProjectToDelete(null)}
+          />
+          <div className="fixed inset-0 z-[1000] overflow-y-auto flex items-center justify-center p-4 pointer-events-none">
+            <div
+              className="bg-white rounded-3xl p-6 md:p-8 max-w-md w-full shadow-2xl border border-rose-100 animate-scale-up pointer-events-auto"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center gap-3.5 mb-4">
+                <div className="h-12 w-12 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center flex-shrink-0">
+                  <Trash2 className="h-6 w-6 text-rose-600" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-black text-slate-900">
+                    Delete Project
+                  </h3>
+                  <p className="text-xs text-slate-500">
+                    This action cannot be undone
+                  </p>
+                </div>
+              </div>
+
+              <p className="text-sm text-slate-600 mb-6 leading-relaxed">
+                Are you sure you want to delete{' '}
+                <span className="font-bold text-slate-900">
+                  "{projectToDelete.name}"
+                </span>
+                ? All associated progress and data will be permanently removed.
+              </p>
+
+              <div className="flex items-center justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={() => setProjectToDelete(null)}
+                  className="px-4 py-2.5 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100 transition cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  id="confirm-delete-ws-project-btn"
+                  type="button"
+                  disabled={isDeletingProject}
+                  onClick={handleConfirmDeleteProject}
+                  className="px-5 py-2.5 rounded-xl text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 shadow-md transition cursor-pointer disabled:opacity-50"
+                >
+                  {isDeletingProject ? 'Deleting...' : 'Delete Project'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
+
       {memberToDelete && (
         <>
           <div

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Users, ClipboardList, CheckCircle2, Search } from 'lucide-react';
 import MainLayout from '../../components/layout/MainLayout';
 import { apiPrivate } from '../../api/axios';
 
@@ -122,8 +123,16 @@ export default function Team() {
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 animate-fade-in-up stagger">
         {[
-          { label: 'Total Members', value: teamMembers.length, icon: '👥' },
-          { label: 'Active Tasks', value: totalTasks, icon: '📋' },
+          {
+            label: 'Total Members',
+            value: teamMembers.length,
+            icon: <Users className="h-6 w-6 text-indigo-600" />,
+          },
+          {
+            label: 'Active Tasks',
+            value: totalTasks,
+            icon: <ClipboardList className="h-6 w-6 text-amber-600" />,
+          },
           {
             label: 'Avg. Completed',
             value:
@@ -133,14 +142,14 @@ export default function Team() {
                       teamMembers.length,
                   )
                 : 0,
-            icon: '✅',
+            icon: <CheckCircle2 className="h-6 w-6 text-emerald-600" />,
           },
         ].map(({ label, value, icon }) => (
           <div
             key={label}
             className="bg-white border border-slate-100 rounded-2xl p-4 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all"
           >
-            <div className="text-2xl mb-1">{icon}</div>
+            <div className="mb-2">{icon}</div>
             <div className="text-2xl font-extrabold text-slate-800">
               {value}
             </div>
@@ -179,7 +188,7 @@ export default function Team() {
 
       {filtered.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-20 animate-fade-in">
-          <div className="text-4xl mb-3">🔍</div>
+          <Search className="h-10 w-10 text-slate-300 mx-auto mb-3" />
           <h3 className="text-sm font-bold text-slate-700">No members found</h3>
           <p className="text-xs text-slate-400 mt-1">
             Try adjusting your search or filter

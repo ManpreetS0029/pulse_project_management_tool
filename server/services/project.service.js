@@ -65,8 +65,54 @@ const getProjects = async ({ userId, workspaceId, workspaceName }) => {
   return projects;
 };
 
+const updateProject = async (id, data) => {
+  const projectData = { ...data };
+
+  if (projectData.workspace) {
+    const ws = projectData.workspace;
+    if (mongoose.Types.ObjectId.isValid(ws)) {
+      projectData.workspace = ws;
+    } else if (typeof ws === 'string') {
+      const foundWs = await Workspace.findOne({ name: ws });
+      if (foundWs) {
+        projectData.workspace = foundWs._id;
+        projectData.workspaceName = foundWs.name;
+      } else {
+        projectData.workspaceName = ws;
+      }
+    }
+  }
+
+  if (projectData.dueDate) {
+    projectData.dueDate = new Date(projectData.dueDate);
+  }
+
+  const query = mongoose.Types.ObjectId.isValid(id)
+    ? { _id: id }
+    : { $or: [{ _id: mongoose.Types.ObjectId.isValid(id) ? id : undefined }, { id: id }].filter(Boolean) };
+
+  const updatedProject = await Project.findOneAndUpdate(
+    query,
+    { $set: projectData },
+    { new: true, runValidators: true }
+  );
+
+  return updatedProject;
+};
+
+const deleteProject = async (id) => {
+  const query = mongoose.Types.ObjectId.isValid(id)
+    ? { _id: id }
+    : { $or: [{ _id: mongoose.Types.ObjectId.isValid(id) ? id : undefined }, { id: id }].filter(Boolean) };
+  const deleted = await Project.findOneAndDelete(query);
+  return deleted;
+};
+
 module.exports = {
   createProject,
   getProjects,
+  updateProject,
+  deleteProject,
 };
+
 

@@ -71,6 +71,27 @@ const getTasks = async ({ workspaceId, projectId, status }) => {
   return tasks;
 };
 
+const getTasksByProjectId = async (projectId) => {
+  let filter = {};
+  if (mongoose.Types.ObjectId.isValid(projectId)) {
+    filter = {
+      $or: [
+        { project: projectId },
+        { projectName: new RegExp(`^${projectId}$`, 'i') },
+      ],
+    };
+  } else {
+    filter = {
+      $or: [
+        { project: projectId },
+        { projectName: new RegExp(`^${projectId}$`, 'i') },
+      ],
+    };
+  }
+  const tasks = await Task.find(filter).sort({ createdAt: -1 });
+  return tasks;
+};
+
 const updateTask = async (id, updateData) => {
   if (updateData.notes && !updateData.description) {
     updateData.description = updateData.notes;
@@ -92,6 +113,7 @@ const deleteTask = async (id) => {
 module.exports = {
   createTask,
   getTasks,
+  getTasksByProjectId,
   updateTask,
   deleteTask,
 };

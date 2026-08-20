@@ -1,5 +1,6 @@
 import React, { useContext, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { ArrowLeft } from 'lucide-react';
 import AuthCard from '../../components/auth/AuthCard';
 import { useForm } from 'react-hook-form';
 import { AuthContext } from '../../context/AuthContext';
@@ -103,9 +104,10 @@ export default function ForgotPassword() {
           <p className="text-center text-sm text-slate-500">
             <Link
               to="/login"
-              className="font-semibold text-slate-700 hover:text-indigo-600 transition"
+              className="inline-flex items-center gap-1 font-semibold text-slate-700 hover:text-indigo-600 transition"
             >
-              ← Back to sign in
+              <ArrowLeft className="h-3.5 w-3.5" />
+              <span>Back to sign in</span>
             </Link>
           </p>
         </div>
@@ -161,9 +163,10 @@ export default function ForgotPassword() {
           <p className="text-center text-sm text-slate-500">
             <Link
               to="/login"
-              className="font-semibold text-slate-700 hover:text-indigo-600 transition"
+              className="inline-flex items-center gap-1 font-semibold text-slate-700 hover:text-indigo-600 transition"
             >
-              ← Back to sign in
+              <ArrowLeft className="h-3.5 w-3.5" />
+              <span>Back to sign in</span>
             </Link>
           </p>
         </form>

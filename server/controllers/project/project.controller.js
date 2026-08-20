@@ -2,6 +2,8 @@ const mongoose = require('mongoose');
 const {
   createProject: createProjectService,
   getProjects: getProjectsService,
+  updateProject: updateProjectService,
+  deleteProject: deleteProjectService,
 } = require('../../services/project.service.js');
 const User = require('../../models/user.model.js');
 
@@ -61,8 +63,59 @@ const getProjects = async (req, res, next) => {
   }
 };
 
+const updateProject = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const updated = await updateProjectService(id, req.body);
+
+    if (!updated) {
+      return res.status(404).json({
+        success: false,
+        message: 'Project not found',
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      data: updated,
+    });
+  } catch (error) {
+    res.status(error.statusCode || 500).json({
+      success: false,
+      message: error.message || 'Failed to update project',
+    });
+  }
+};
+
+const deleteProject = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const deleted = await deleteProjectService(id);
+
+    if (!deleted) {
+      return res.status(404).json({
+        success: false,
+        message: 'Project not found',
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: 'Project deleted successfully',
+    });
+  } catch (error) {
+    res.status(error.statusCode || 500).json({
+      success: false,
+      message: error.message || 'Failed to delete project',
+    });
+  }
+};
+
 module.exports = {
   createProject,
   getProjects,
+  updateProject,
+  deleteProject,
 };
+
 

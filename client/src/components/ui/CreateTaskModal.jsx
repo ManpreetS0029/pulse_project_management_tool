@@ -1,5 +1,15 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useForm } from 'react-hook-form';
+import {
+  Paperclip,
+  MessageSquare,
+  CheckSquare,
+  FileText,
+  File,
+  AlertCircle,
+  AlertTriangle,
+  Folder,
+} from 'lucide-react';
 import { apiPrivate } from '../../api/axios';
 import RichTextEditor from './RichTextEditor';
 import { useAuth } from '../../context/AuthContext';
@@ -365,7 +375,7 @@ export default function CreateTaskModal({
                 id: wsObj._id || wsObj.id,
                 _id: wsObj._id || wsObj.id,
                 name: wsObj.name || 'Untitled Workspace',
-                logo: wsObj.logo || '📁',
+                logo: wsObj.logo || '',
               };
             });
             setWorkspaceList(normalized);
@@ -908,7 +918,7 @@ export default function CreateTaskModal({
                 />
               ) : (
                 <div className="p-12 text-center text-slate-300">
-                  <p className="text-4xl mb-3">📄</p>
+                  <FileText className="h-12 w-12 text-slate-300 mx-auto mb-3" />
                   <p className="text-sm font-semibold mb-2">
                     {previewMedia.name}
                   </p>
@@ -1040,8 +1050,9 @@ export default function CreateTaskModal({
                   }`}
                 />
                 {errors.title && (
-                  <p className="text-xs text-rose-500 font-bold mt-1.5 flex items-center gap-1">
-                    <span>⚠️</span> {errors.title.message}
+                  <p className="text-xs text-rose-500 font-bold mt-1.5 flex items-center gap-1.5">
+                    <AlertCircle className="h-3.5 w-3.5 flex-shrink-0" />
+                    <span>{errors.title.message}</span>
                   </p>
                 )}
               </div>
@@ -1051,13 +1062,14 @@ export default function CreateTaskModal({
                 <button
                   type="button"
                   onClick={() => setActiveTab('notes')}
-                  className={`px-3 py-2 text-xs font-bold rounded-t-xl transition cursor-pointer border-b-2 ${
+                  className={`px-3 py-2 text-xs font-bold rounded-t-xl transition cursor-pointer border-b-2 flex items-center gap-1.5 ${
                     activeTab === 'notes'
                       ? 'border-indigo-600 text-indigo-600 bg-indigo-50/50'
                       : 'border-transparent text-slate-500 hover:text-slate-800'
                   }`}
                 >
-                  📝 Notes & Specs
+                  <FileText className="h-3.5 w-3.5" />
+                  <span>Notes & Specs</span>
                 </button>
                 <button
                   type="button"
@@ -1068,7 +1080,8 @@ export default function CreateTaskModal({
                       : 'border-transparent text-slate-500 hover:text-slate-800'
                   }`}
                 >
-                  ✅ Subtasks
+                  <CheckSquare className="h-3.5 w-3.5" />
+                  <span>Subtasks</span>
                   <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-slate-200 text-slate-700">
                     {completedSubtasksCount}/{subtasks.length}
                   </span>
@@ -1082,7 +1095,8 @@ export default function CreateTaskModal({
                       : 'border-transparent text-slate-500 hover:text-slate-800'
                   }`}
                 >
-                  📎 Files & Attachments
+                  <Paperclip className="h-3.5 w-3.5" />
+                  <span>Files & Attachments</span>
                   <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-slate-200 text-slate-700">
                     {files.length}
                   </span>
@@ -1096,7 +1110,8 @@ export default function CreateTaskModal({
                       : 'border-transparent text-slate-500 hover:text-slate-800'
                   }`}
                 >
-                  💬 Comments
+                  <MessageSquare className="h-3.5 w-3.5" />
+                  <span>Comments</span>
                   <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-indigo-100 text-indigo-700 font-extrabold">
                     {comments.length}
                   </span>
@@ -1334,10 +1349,11 @@ export default function CreateTaskModal({
                           >
                             <span
                               onClick={() => setPreviewMedia(file)}
-                              className="cursor-pointer hover:underline flex items-center gap-1"
+                              className="cursor-pointer hover:underline flex items-center gap-1.5"
                               title="Preview file"
                             >
-                              📎 {file.name} ({file.size})
+                              <Paperclip className="h-3 w-3" />
+                              <span>{file.name} ({file.size})</span>
                             </span>
                             <div className="flex items-center gap-1 ml-1 border-l border-indigo-200 pl-1">
                               <button
@@ -1495,7 +1511,7 @@ export default function CreateTaskModal({
                                     onClick={() => setPreviewMedia(att)}
                                     className="h-9 w-9 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold text-xs cursor-pointer flex-shrink-0"
                                   >
-                                    📎
+                                    <Paperclip className="h-4 w-4" />
                                   </div>
                                 )}
                                 <div className="min-w-0 pr-1">
@@ -1623,7 +1639,7 @@ export default function CreateTaskModal({
                 >
                   {workspaceList.map((w) => (
                     <option key={w.id || w._id} value={w.id || w._id}>
-                      {w.logo || '📁'} {w.name}
+                      {w.name}
                     </option>
                   ))}
                 </select>
@@ -1739,7 +1755,7 @@ export default function CreateTaskModal({
                     );
                     return (
                       <option key={a.id || a.name} value={a.id || a.name}>
-                        {isSelected ? '✓ ' : '  '}
+                        {isSelected ? '[x] ' : '    '}
                         {a.name} ({a.role})
                       </option>
                     );
@@ -2087,8 +2103,8 @@ export default function CreateTaskModal({
                 />
               ) : (
                 <div className="text-center p-8 bg-white rounded-2xl border border-slate-200 max-w-md shadow-sm">
-                  <div className="h-16 w-16 mx-auto rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold text-2xl mb-3">
-                    📄
+                  <div className="h-16 w-16 mx-auto rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold mb-3">
+                    <FileText className="h-8 w-8 text-indigo-600" />
                   </div>
                   <h4 className="text-sm font-bold text-slate-800 mb-1">
                     {previewMedia.name}

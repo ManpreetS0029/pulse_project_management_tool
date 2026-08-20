@@ -248,7 +248,11 @@ export default function Register() {
             />
             {errors.email && (
               <p className="text-xs text-rose-600 flex items-center gap-1 mt-1">
-                <svg className="h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
+                <svg
+                  className="h-3 w-3"
+                  fill="currentColor"
+                  viewBox="0 0 20 20"
+                >
                   <path
                     fillRule="evenodd"
                     d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z"
@@ -373,48 +377,6 @@ export default function Register() {
               </span>
               <span className="text-[10px] text-slate-400 mt-0.5 leading-tight">
                 Leads the projects
-              </span>
-            </label>
-
-            <label
-              className={`flex flex-col items-center justify-center p-3 border rounded-xl cursor-pointer transition-all duration-150 text-center relative ${
-                selectedRole === 'ADMIN'
-                  ? 'border-indigo-600 bg-indigo-50/40 ring-2 ring-indigo-600/25'
-                  : errors.role
-                    ? 'border-rose-300 bg-white hover:bg-slate-50'
-                    : 'border-slate-200 bg-white hover:bg-slate-50 hover:border-slate-300'
-              }`}
-            >
-              <input
-                type="radio"
-                value="ADMIN"
-                className="sr-only"
-                {...register('role', { required: 'Role is required' })}
-              />
-              <div
-                className={`p-1.5 rounded-lg ${selectedRole === 'ADMIN' ? 'bg-indigo-100 text-indigo-600' : 'bg-slate-100 text-slate-500'}`}
-              >
-                <svg
-                  className="h-5 w-5"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"
-                  />
-                </svg>
-              </div>
-              <span
-                className={`mt-1.5 text-xs font-bold ${selectedRole === 'ADMIN' ? 'text-indigo-900' : 'text-slate-700'}`}
-              >
-                Admin
-              </span>
-              <span className="text-[10px] text-slate-400 mt-0.5 leading-tight">
-                Controls settings
               </span>
             </label>
           </div>

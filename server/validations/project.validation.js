@@ -11,6 +11,20 @@ const createProjectSchema = z.object({
   }),
 });
 
+const updateProjectSchema = z.object({
+  body: z.object({
+    name: z.string().min(1, 'Project name is required').optional(),
+    description: z.string().optional().nullable(),
+    status: z.string().optional(),
+    priority: z.string().optional(),
+    dueDate: z.any().optional(),
+    workspace: z.any().optional(),
+    progress: z.number().optional(),
+  }),
+});
+
 module.exports = {
   createProjectSchema,
+  updateProjectSchema,
 };
+

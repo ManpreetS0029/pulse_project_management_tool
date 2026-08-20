@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { Globe, Zap, Search, Trash2, Folder, Plus } from 'lucide-react';
 import MainLayout from '../../components/layout/MainLayout';
 import ProjectCard from '../../components/ui/ProjectCard';
 import CreateProjectModal from '../../components/ui/CreateProjectModal';
@@ -48,6 +49,9 @@ export default function Projects() {
   const [search, setSearch] = useState('');
   const [toast, setToast] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingProject, setEditingProject] = useState(null);
+  const [projectToDelete, setProjectToDelete] = useState(null);
+  const [isDeletingProject, setIsDeletingProject] = useState(false);
   const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
 
   useEffect(() => {
@@ -62,7 +66,7 @@ export default function Projects() {
               id: wsObj._id || wsObj.id,
               _id: wsObj._id || wsObj.id,
               name: wsObj.name || 'Untitled Workspace',
-              logo: wsObj.logo || '📁',
+              logo: wsObj.logo || '',
               color: wsObj.color || 'from-indigo-600 to-purple-600',
               membersCount: wsObj.membersCount || 10,
               projectsCount: wsObj.projectsCount || 5,
@@ -113,6 +117,7 @@ export default function Projects() {
 
   useEffect(() => {
     if (location.search.includes('new=true') || location.state?.openNewModal) {
+      setEditingProject(null);
       setIsModalOpen(true);
     }
   }, [location]);
@@ -155,16 +160,75 @@ export default function Projects() {
     setTimeout(() => setToast(''), 3500);
   };
 
-  const handleSaveProject = (newProject) => {
-    const normalized = normalizeProject(newProject);
-    setProjectList((prev) => [
-      normalized,
-      ...prev.filter((p) => p.id !== normalized.id && p._id !== normalized._id),
-    ]);
-    setActiveFilter('All');
-    setSearch('');
+  const handleOpenEditProjectModal = (project) => {
+    setEditingProject(project);
+    setIsModalOpen(true);
+  };
+
+  const handleOpenDeleteProjectModal = (project) => {
+    setProjectToDelete(project);
+  };
+
+  const handleConfirmDeleteProject = async () => {
+    if (!projectToDelete) return;
+    setIsDeletingProject(true);
+    const targetId = projectToDelete._id || projectToDelete.id;
+
+    try {
+      await apiPrivate.delete(`/project/${targetId}`);
+      setProjectList((prev) =>
+        prev.filter(
+          (p) =>
+            p.id !== targetId &&
+            p._id !== targetId &&
+            p.id !== projectToDelete.id &&
+            p._id !== projectToDelete._id,
+        ),
+      );
+      triggerToast(`Project "${projectToDelete.name}" deleted successfully!`);
+    } catch (err) {
+      console.error('Failed to delete project:', err);
+      // Fallback local deletion
+      setProjectList((prev) =>
+        prev.filter(
+          (p) =>
+            p.id !== targetId &&
+            p._id !== targetId &&
+            p.id !== projectToDelete.id &&
+            p._id !== projectToDelete._id,
+        ),
+      );
+      triggerToast(`Project "${projectToDelete.name}" deleted`);
+    } finally {
+      setIsDeletingProject(false);
+      setProjectToDelete(null);
+    }
+  };
+
+  const handleSaveProject = (savedProject, isEdit) => {
+    const normalized = normalizeProject(savedProject);
+    if (isEdit || editingProject) {
+      setProjectList((prev) =>
+        prev.map((p) =>
+          p.id === normalized.id || (normalized._id && p._id === normalized._id)
+            ? { ...p, ...normalized }
+            : p,
+        ),
+      );
+      triggerToast(`Project "${savedProject.name}" updated successfully!`);
+    } else {
+      setProjectList((prev) => [
+        normalized,
+        ...prev.filter(
+          (p) => p.id !== normalized.id && p._id !== normalized._id,
+        ),
+      ]);
+      setActiveFilter('All');
+      setSearch('');
+      triggerToast(`Project "${savedProject.name}" created successfully!`);
+    }
     setIsModalOpen(false);
-    triggerToast(`Project "${newProject.name}" created successfully!`);
+    setEditingProject(null);
     if (location.search.includes('new=true') || location.state?.openNewModal) {
       navigate('/dashboard/projects', { replace: true, state: {} });
     }
@@ -221,7 +285,11 @@ export default function Projects() {
               className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white border border-slate-200 text-slate-800 text-xs font-bold shadow-xs hover:border-indigo-300 hover:bg-indigo-50/30 transition-all cursor-pointer group"
             >
               <span className="h-5 w-5 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center text-xs font-bold">
-                {selectedWorkspace?.logo || '⚡'}
+                {selectedWorkspace?.id === 'all' ? (
+                  <Globe className="h-3.5 w-3.5" />
+                ) : (
+                  <Zap className="h-3.5 w-3.5" />
+                )}
               </span>
               <span className="text-slate-400 font-normal">Workspace:</span>
               <span className="font-extrabold text-indigo-950 group-hover:text-indigo-600 transition-colors">
@@ -260,7 +328,6 @@ export default function Projects() {
                       setSelectedWorkspace({
                         id: 'all',
                         name: 'All Workspaces',
-                        logo: '🌐',
                       });
                       setIsWsDropdownOpen(false);
                     }}
@@ -272,7 +339,7 @@ export default function Projects() {
                   >
                     <div className="flex items-center gap-2.5">
                       <span className="h-7 w-7 rounded-xl bg-slate-100 text-slate-600 flex items-center justify-center text-xs">
-                        🌐
+                        <Globe className="h-4 w-4" />
                       </span>
                       <div className="text-left">
                         <div className="font-bold text-slate-800">
@@ -319,7 +386,7 @@ export default function Projects() {
                       >
                         <div className="flex items-center gap-2.5">
                           <span className="h-7 w-7 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center text-xs font-bold">
-                            {ws.logo || '⚡'}
+                            <Zap className="h-4 w-4" />
                           </span>
                           <div className="text-left">
                             <div className="font-bold text-slate-800">
@@ -391,7 +458,10 @@ export default function Projects() {
           </button>
           <button
             id="projects-new-btn"
-            onClick={() => setIsModalOpen(true)}
+            onClick={() => {
+              setEditingProject(null);
+              setIsModalOpen(true);
+            }}
             className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold text-white shadow-sm transition cursor-pointer hover:shadow-lg hover:shadow-indigo-500/30 hover:-translate-y-px"
             style={{ background: 'linear-gradient(135deg,#6366f1,#8b5cf6)' }}
           >
@@ -469,8 +539,8 @@ export default function Projects() {
 
       {filtered.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-20 animate-fade-in">
-          <div className="h-16 w-16 rounded-2xl bg-slate-100 flex items-center justify-center text-2xl mb-4">
-            🔍
+          <div className="h-16 w-16 rounded-2xl bg-slate-100 flex items-center justify-center text-slate-400 mb-4">
+            <Search className="h-7 w-7" />
           </div>
           <h3 className="text-sm font-bold text-slate-700">
             No projects found
@@ -492,6 +562,8 @@ export default function Projects() {
                   )}&projectId=${encodeURIComponent(project.id || project._id || '')}`,
                 )
               }
+              onEdit={handleOpenEditProjectModal}
+              onDelete={handleOpenDeleteProjectModal}
             />
           ))}
         </div>
@@ -530,10 +602,15 @@ export default function Projects() {
 
       <CreateProjectModal
         isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
+        onClose={() => {
+          setIsModalOpen(false);
+          setEditingProject(null);
+        }}
         onSave={handleSaveProject}
+        onDelete={handleOpenDeleteProjectModal}
         defaultWorkspace={selectedWorkspace?.name || ''}
         workspaceList={workspaces.map((w) => w.name)}
+        existingProject={editingProject}
       />
 
       <CreateTaskModal
@@ -542,6 +619,64 @@ export default function Projects() {
         onSaveTask={handleSaveTaskFromProjects}
         initialProject={selectedWorkspace?.name || ''}
       />
+
+      {/* DELETE PROJECT CONFIRMATION MODAL */}
+      {projectToDelete && (
+        <>
+          <div
+            className="fixed inset-0 w-screen h-screen min-h-screen bg-slate-950/75 backdrop-blur-md z-[999] animate-fade-in cursor-pointer"
+            onClick={() => setProjectToDelete(null)}
+          />
+          <div className="fixed inset-0 z-[1000] overflow-y-auto flex items-center justify-center p-4 pointer-events-none">
+            <div
+              className="bg-white rounded-3xl p-6 md:p-8 max-w-md w-full shadow-2xl border border-rose-100 animate-scale-up pointer-events-auto"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center gap-3.5 mb-4">
+                <div className="h-12 w-12 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center flex-shrink-0">
+                  <Trash2 className="h-6 w-6 text-rose-600" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-black text-slate-900">
+                    Delete Project
+                  </h3>
+                  <p className="text-xs text-slate-500">
+                    This action cannot be undone
+                  </p>
+                </div>
+              </div>
+
+              <p className="text-sm text-slate-600 mb-6 leading-relaxed">
+                Are you sure you want to delete{' '}
+                <span className="font-bold text-slate-900">
+                  "{projectToDelete.name}"
+                </span>
+                ? All associated progress and data will be permanently removed.
+              </p>
+
+              <div className="flex items-center justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={() => setProjectToDelete(null)}
+                  className="px-4 py-2.5 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100 transition cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  id="confirm-delete-project-btn"
+                  type="button"
+                  disabled={isDeletingProject}
+                  onClick={handleConfirmDeleteProject}
+                  className="px-5 py-2.5 rounded-xl text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 shadow-md transition cursor-pointer disabled:opacity-50"
+                >
+                  {isDeletingProject ? 'Deleting...' : 'Delete Project'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
     </MainLayout>
   );
 }
+

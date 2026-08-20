@@ -4,7 +4,7 @@ import { apiPrivate } from '../api/axios';
 export const AuthContext = createContext({});
 
 export const AuthProvider = ({ children }) => {
-  const [auth, setAuth] = useState({ token: null, username: null });
+  const [auth, setAuth] = useState({ token: null, username: null, role: null });
   const [loading, setLoading] = useState(true);
 
   const authRef = useRef(auth);
@@ -61,7 +61,12 @@ export const AuthProvider = ({ children }) => {
           try {
             const response = await apiPrivate.post('/auth/refresh');
             const newAccessToken = response.data.accessToken;
-            setAuth((prev) => ({ ...prev, token: newAccessToken }));
+            setAuth((prev) => ({
+              ...prev,
+              token: newAccessToken,
+              username: response.data.username || prev.username,
+              role: response.data.role || prev.role,
+            }));
             if (prevRequest.headers && typeof prevRequest.headers.set === 'function') {
               prevRequest.headers.set('Authorization', `Bearer ${newAccessToken}`);
             } else if (prevRequest.headers) {
@@ -69,7 +74,7 @@ export const AuthProvider = ({ children }) => {
             }
             return apiPrivate(prevRequest);
           } catch (refreshError) {
-            setAuth({ token: null, username: null });
+            setAuth({ token: null, username: null, role: null });
             return Promise.reject(refreshError);
           }
         }
@@ -89,7 +94,7 @@ export const AuthProvider = ({ children }) => {
     } catch (err) {
       console.error('Logout request failed:', err);
     } finally {
-      setAuth({ token: null, username: null });
+      setAuth({ token: null, username: null, role: null });
     }
   };
 
@@ -99,7 +104,9 @@ export const AuthProvider = ({ children }) => {
         auth,
         setAuth,
         loading,
-        user: auth.token ? { username: auth.username } : null,
+        user: auth.token
+          ? { username: auth.username, role: auth.role }
+          : null,
         logout,
       }}
     >
