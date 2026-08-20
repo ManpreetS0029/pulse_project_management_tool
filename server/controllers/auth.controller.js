@@ -53,12 +53,14 @@ const login = async (req, res) => {
       { expiresIn: '7d' },
     );
 
+    const isProduction = process.env.NODE_ENV === 'production';
     res.cookie('refreshToken', refreshToken, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
+      secure: isProduction,
+      sameSite: isProduction ? 'none' : 'lax',
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
+
 
     res.json({ accessToken, username: user.username, role: user.role });
   } catch (err) {

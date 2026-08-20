@@ -57,11 +57,13 @@ router.post('/logout', (req, res) => {
   const cookies = req.cookies;
   if (!cookies?.refreshToken) return res.sendStatus(204); // No content
 
+  const isProduction = process.env.NODE_ENV === 'production';
   res.clearCookie('refreshToken', {
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax',
+    secure: isProduction,
+    sameSite: isProduction ? 'none' : 'lax',
   });
+
   return res
     .status(200)
     .json({ success: true, message: 'Logged out successfully' });
